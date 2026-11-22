@@ -27,13 +27,19 @@ export default function Home() {
             <Link href="/start" className="button primary button-large">
               Find my starting point <ArrowRight size={18} aria-hidden="true" />
             </Link>
-            <a href="#how" className="button ghost">See how it works</a>
+            <Link href="/coach" className="button ghost">
+              Ask the guide <MessageCircle size={17} aria-hidden="true" />
+            </Link>
+            <a href="#how" className="inline-link">See how it works</a>
           </div>
           <ul className="trust-list">
             <li><Lock size={15} aria-hidden="true" /> No account or email</li>
-            <li><Check size={15} aria-hidden="true" /> Answers stay in your browser</li>
+            <li><Check size={15} aria-hidden="true" /> Onboarding answers stay in your browser</li>
             <li><Clock size={15} aria-hidden="true" /> Takes about 2 minutes</li>
           </ul>
+          <p className="hero-coach-note">
+            Want to talk it through first? The educational guide asks one question at a time and never recommends a product.
+          </p>
         </div>
 
         <div className="hero-visual-wrap">

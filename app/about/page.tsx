@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import PrivacyActions from '../../components/PrivacyActions';
 import { GROWW_URL } from '../../lib/onboarding';
 
@@ -28,7 +29,7 @@ export default function AboutPage() {
 
       <div className="about-callout">
         <div><strong>Independent</strong><span>Not affiliated with Groww.</span></div>
-        <div><strong>Browser-only</strong><span>Your answers never reach a server.</span></div>
+        <div><strong>Onboarding is browser-only</strong><span>Your six answers never reach a server.</span></div>
         <div><strong>Not advice</strong><span>Education, not a recommendation.</span></div>
       </div>
 
@@ -59,6 +60,27 @@ export default function AboutPage() {
         data may remove them, and Groww never receives a copy.
       </p>
       <PrivacyActions />
+
+      <h2>The optional educational guide</h2>
+      <p>
+        The <Link href="/coach">Guide</Link> is separate from onboarding. It never receives your six onboarding answers. When
+        you send a message, that message and the last few turns are posted to Growerr&apos;s coach API. If the AI service
+        is configured, they are passed to Gemini to produce that reply; Growerr requests no provider-side storage for
+        later retrieval. The conversation is not saved in local storage or by Growerr after you leave the page.
+      </p>
+      <p>
+        If the AI service is not configured, fails, or returns something that cannot be checked against the approved
+        education notes, the page shows a clearly labelled built-in educational reply instead. It never pretends a model
+        response succeeded. The guide uses a fixed set of SEBI and AMFI education notes, does not browse live product
+        pages, and does not claim access to prices, fees, holdings, accounts or broker systems.
+      </p>
+      <p>
+        The guide is for general education only. It does not recommend or rank products, give buy/sell/hold calls,
+        estimate returns, or tell you what is suitable for you. For advice about your own situation, speak to a
+        SEBI-registered Investment Adviser. Do not paste PAN, Aadhaar, bank or card numbers, OTPs, passwords, or exact
+        holdings; the guide clears obvious private details locally before they are sent and asks you not to repeat
+        them.
+      </p>
 
       <h2>Independence</h2>
       <p>

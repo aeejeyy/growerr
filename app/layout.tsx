@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Growerr — a clearer first step into investing',
-  description: 'Six simple questions turn into a personal starting point for your investing journey. Independent, private, and free.'
+  description: 'Six simple questions turn into a personal starting point, with an optional educational guide. Independent, private, and free.'
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </Link>
             <nav className="nav" aria-label="Main navigation">
               <Link href="/#how" className="nav-secondary">How it works</Link>
+              <Link href="/coach">Guide</Link>
               <Link href="/about">Privacy</Link>
               <Link href="/start" className="button primary button-small">Get started</Link>
             </nav>
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
             <nav className="footer-links" aria-label="Footer navigation">
               <Link href="/#how">How it works</Link>
+              <Link href="/coach">Educational guide</Link>
               <Link href="/about">Privacy &amp; independence</Link>
               <Link href="/start">Get started</Link>
             </nav>

@@ -213,6 +213,17 @@ export default function Onboarding() {
             <p className="caption">These are educational topics, not recommendations or a promise of returns.</p>
           </section>
 
+          <section className="coach-summary-card" aria-labelledby="coach-summary-title">
+            <div>
+              <span className="kicker"><MessageCircle size={15} aria-hidden="true" /> Optional guide</span>
+              <h2 id="coach-summary-title">Want to talk one question through?</h2>
+              <p>The educational guide explains one idea at a time. Your six answers are never shared with it.</p>
+            </div>
+            <Link href="/coach" className="button secondary button-small">
+              Ask the guide <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          </section>
+
           <section className="groww-card" aria-labelledby="groww-title">
             <div>
               <span className="kicker">Next step</span>

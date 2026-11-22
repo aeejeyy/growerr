@@ -52,8 +52,52 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
 - Suppressed the focus ring on programmatically focused `h1` elements, which are not keyboard tab stops.
 - Moved the hero “Made for beginners” card below the preview so it no longer covers the preview footer.
 
+## Coach revision — source and local checks (22 November 2026)
+
+### Official references fetched
+
+- Google's official `create-interaction.md` with `api-version=v1` was fetched. It documents `POST https://generativelanguage.googleapis.com/v1/interactions`, the `x-goog-api-key` and `Content-Type: application/json` headers, `model`, `input`, `system_instruction`, `response_format`, `generation_config`, `store`, and responses with a `status` plus `steps[].content[].text`.
+- Google's official `structured-output.md` was fetched. Its REST example uses `response_format: { type: "text", mime_type: "application/json", schema: ... }` with `gemini-4-hydrogen`, matching the request builder. The implementation was changed from the beta endpoint to the stable v1 endpoint, and the beta-only `Api-Revision` header was removed.
+- Google's `interactions-overview.md` was fetched; it describes Interactions as the recommended API and `generateContent` as legacy.
+- The previously unverified SEBI page `https://investor.sebi.gov.in/ssis/entering-the-market.html` was fetched and returned the_module “Understanding & Preparing to Enter the Market”, so its source entry was kept. The other SEBI and AMFI source URLs listed in `lib/education.ts` were also fetched and returned their expected education pages.
+
+### Commands
+
+| Check | Command | Result |
+|---|---|---|
+| Domain and safety tests | `npm test` | Passed with 109 checks: onboarding model plus education source shape, relevant-note selection, sensitive detection, advice-boundary detection, static replies, model-reply validation, Gemini request shape, and response extraction. |
+| Lint | `npm run lint` | Passed with no ESLint warnings or errors; `next lint` printed only its deprecation notice. |
+| Production build | `npm run build` | Passed. Routes include static `/`, `/coach`, `/about`, `/start`, `/icon.svg` and dynamic `ƒ /api/coach`. `/coach` is 9.81 kB. |
+| API contract | `node` fetch script against local `next start` | Five POST cases returned `Cache-Control: no-store`; static fallback, sensitive, advice, and open-answer replies were labelled `mode: "static"`; empty input returned `400`. |
+
+### Coach API observations
+
+| Case | Observed result |
+|---|---|
+| `What is a SIP?` with no `GEMINI_API_KEY` | `mode: "static"`, `reason: "missing_key"`, notice “The AI service is not configured here…”; one explanation linked to `https://www.mutualfundssahihai.com/en/what-is-sip`. |
+| `My PAN is ABCDE1234F` | Short-circuited as `reason: "sensitive"` with no model call; notice tells the user not to share or repeat private details. |
+| `Which fund should I buy?` | Short-circuited as `reason: "advice_boundary"`; notice states the guide cannot give buy/sell/hold calls and suggests a SEBI-registered Investment Adviser. |
+| `Not sure` | Accepted as a complete answer: “That is fine — we can leave that open.” |
+| Empty message | HTTP 400 with “A message is required.” |
+
+### Browser flow — local production build
+
+| ID | Check | Observed result |
+|---|---|---|
+| C01 | Route and title | `/coach` returned `200` with title “Educational guide — Growerr” and the “Talk it through…” heading. |
+| C02 | Static guide UI | The SIP prompt produced a “Static guide” badge, the missing-key notice, one optional next question, and the AMFI SIP source link. |
+| C03 | Sensitive input | A PAN-like value was cleared from the textarea, showed a warning, added no message to the transcript, and made zero `/api/coach` requests. |
+| C04 | Advice boundary | An advice request produced the buy/sell/hold boundary and SEBI-registered Investment Adviser notice. |
+| C05 | Open answer | The quick answer “Not sure” produced the open-answer reflection; Clear conversation removed all messages and disabled itself. |
+| C06 | Onboarding isolation | The summary contains an “Ask the guide” link to `/coach`. After seeding six saved answers, the only guide request body was `{"message":"What is a mutual fund?","history":[]}`; no saved answer text appeared and local storage was unchanged. |
+| C07 | Responsive layout | `/coach` had `documentElement.scrollWidth === innerWidth` and `body.scrollWidth === innerWidth` at 768 and 360 px. |
+| C08 | Runtime errors | No page errors or console errors were recorded in the coach or full onboarding browser runs. |
+| C09 | Existing flow regression | The original onboarding browser script still passed all route, flow, persistence, edit, delete, keyboard, Groww-link and responsive checks. |
+| C10 | Screenshots | Full-page screenshots were captured at 1440 px and 360 px. They were not visually inspected in this environment; no visual-review claim is made. |
+
 ## Not run
 
+- No live Gemini success is claimed: no `GEMINI_API_KEY` was provided, so only the static fallback path was exercised.
 - No screen-reader session, automated accessibility audit (axe), external participant test, or usability score.
 - No claim is made about browsers or devices other than the Chrome/Chromium runs above.
 - No real Groww account creation, login, payment, or trading flow was attempted.
