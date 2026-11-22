@@ -1,20 +1,81 @@
-'use client';
-import { useState } from 'react';
-import { clearAll, exportData, exportRawData, StorageProblem } from '../../lib/storage';
-import { downloadJson } from '../../lib/download';
-import { nonAdvice } from '../../lib/content';
-import ConfirmDialog from '../../components/ConfirmDialog';
-export default function About() {
-  const [confirm, setConfirm] = useState(false); const [message, setMessage] = useState('');
-  function exportMine() { try { downloadJson(exportData(), 'growerr-data.json'); setMessage('Your data export has started.'); } catch (error) {
-    if (error instanceof StorageProblem) { try { downloadJson(exportRawData(), 'growerr-recovery.json'); setMessage('Saved data could not be read, so the original stored text was exported for recovery.'); } catch { setMessage('Could not access browser storage to export the data.'); } }
-    else setMessage('Could not export the data. Please try again.');
-  } }
-  function removeAll() { try { clearAll(); setConfirm(false); setMessage('Your Growerr data was removed from this browser.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not remove the data.'); } }
-  return <div className="page narrow article"><div className="eyebrow">Methodology & privacy</div><h1>What Growerr does — and does not do</h1><h2>A place to reflect, not a financial adviser</h2><p>{nonAdvice} The percentage illustrations show arithmetic only: they are not forecasts, expected outcomes or the most you could lose. A stock can lose its entire invested value.</p>
-    <h2>Where this idea comes from</h2><p>This prototype is informed by one person’s self-reported first investment experience and by product hypotheses. It is not evidence that all new investors have the same needs, nor a validated solution. The example journey is fictional and labelled synthetic; it is not an interview transcript or live market data.</p>
-    <h2>Your data stays in this browser</h2><p>Decisions and drafts are saved in this browser’s local storage. We do not request names, PAN, bank details, brokerage credentials or exact holdings. Please do not put account identifiers in free-text fields. There is no account, cloud sync, encryption claim or backup: another device cannot retrieve your records, and clearing browser data can remove them.</p>
-    <div className="data-actions"><h2>Manage your data</h2><p>Download your records as JSON before clearing this browser if you want to keep a copy.</p><div className="actions"><button className="button secondary" onClick={exportMine}>Export my data</button><button className="button danger-outline" onClick={() => setConfirm(true)}>Delete all my data</button></div><p role="status" className="status">{message}</p></div>
-    {confirm && <ConfirmDialog title="Delete all Growerr data?" description="This removes saved snapshots and your unfinished draft from this browser. It cannot be undone." confirmLabel="Delete all data" onCancel={() => setConfirm(false)} onConfirm={removeAll} />}
-    </div>;
+import type { Metadata } from 'next';
+import PrivacyActions from '../../components/PrivacyActions';
+import { GROWW_URL } from '../../lib/onboarding';
+
+export const metadata: Metadata = {
+  title: 'Privacy & independence — Growerr',
+  description: 'What Growerr asks, where your answers live, and why it is independent from Groww.'
+};
+
+const questionNotes = [
+  ['Your reason', 'To suggest a useful place to begin.'],
+  ['Your timeline', 'To separate short-term savings from long-term investing.'],
+  ['When markets dip', 'To reflect how much movement you may be comfortable with.'],
+  ['Starting amount', 'To keep the suggested topics realistic. You can skip it.'],
+  ['Your experience', 'To choose simpler or more detailed language.'],
+  ['What matters most', 'To pick three educational topics worth exploring first.']
+];
+
+export default function AboutPage() {
+  return (
+    <div className="page narrow article about-page">
+      <span className="eyebrow">Privacy &amp; independence</span>
+      <h1>A simple starting point, with no strings.</h1>
+      <p className="lead">
+        Growerr is a free, independent onboarding tool. It asks six plain-language questions, shows you a summary,
+        and then lets you continue to Groww when you are ready.
+      </p>
+
+      <div className="about-callout">
+        <div><strong>Independent</strong><span>Not affiliated with Groww.</span></div>
+        <div><strong>Browser-only</strong><span>Your answers never reach a server.</span></div>
+        <div><strong>Not advice</strong><span>Education, not a recommendation.</span></div>
+      </div>
+
+      <h2>What Growerr is</h2>
+      <p>
+        A short, calm way to turn what you already know about yourself into a clearer starting point. It is not a broker,
+        an investment adviser, or a place to buy financial products. It does not open an account, execute trades, or
+        collect contact details.
+      </p>
+
+      <h2>What we ask — and why</h2>
+      <div className="question-notes">
+        {questionNotes.map(([label, reason]) => (
+          <div key={label}><strong>{label}</strong><span>{reason}</span></div>
+        ))}
+      </div>
+
+      <h2>What we never ask for</h2>
+      <p>
+        No name, email address, phone number, PAN, Aadhaar, bank details, broker login, holdings, or income details.
+        There is no Growerr account and no mailing list. The starting amount is a broad range and is optional.
+      </p>
+
+      <h2>Where your answers live</h2>
+      <p>
+        Your answers are stored in this browser&apos;s local storage so you can come back to your starting point. They are
+        not sent to Growerr, Groww, or anyone else. Another browser or device cannot see them. Clearing this browser&apos;s
+        data may remove them, and Groww never receives a copy.
+      </p>
+      <PrivacyActions />
+
+      <h2>Independence</h2>
+      <p>
+        Growerr is an independent educational project. It is not owned by, operated by, endorsed by, or affiliated with
+        Groww. The “Continue to Groww” link opens <a href={GROWW_URL} target="_blank" rel="noopener noreferrer">groww.in</a> in a
+        new tab. Groww is a separate platform with its own terms of use and privacy policy. Growerr does not earn a
+        commission from that link.
+      </p>
+
+      <h2>Not investment advice</h2>
+      <p>
+        The summary and suggested topics are educational. They are not a recommendation to buy, sell, or hold any
+        product, and they do not promise a return. Investments can fall as well as rise, and you may get back less than
+        you put in. For personal advice, speak to a qualified professional who is registered to give it.
+      </p>
+
+      <p className="fine-print">Last updated 22 November 2026.</p>
+    </div>
+  );
 }

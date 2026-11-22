@@ -1,67 +1,66 @@
 # Growerr evidence log
 
-Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external participant, screen-reader session or axe audit is claimed.
+Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external participant, screen-reader session, or axe audit is claimed.
 
 ## Environment
 
 - Windows, Node.js v22.16.0, npm 10.9.2.
 - Next.js 15.5.29, React 19.1.1.
-- Local production server: `npm start` on `http://localhost:3000`.
-- Browser runs: in-app Chromium for the main journey; installed Google Chrome driven by Playwright for viewport and corruption checks.
+- Local production build served with `next start -p 3100`.
+- Browser runs: installed Google Chrome driven by Playwright (headless), plus visual screenshot review at 1440, 768, and 360 px.
 
 ## Dependency, test, lint and build
 
 | Check | Command | Result |
 |---|---|---|
 | Reproducible install | `npm ci --no-audit --no-fund` | Passed; 363 packages installed from `package-lock.json`. |
-| Domain tests | `npm test` | Passed: arithmetic, invalid values, draft, demo label, create/edit/review/delete, export, corrupted data, clear-all (12 checks). |
+| Domain tests | `npm test` | Passed: six-question model, unique option values, answer validation, sanitising, summary rows, suggested topics, copy text, Groww URL and progress (36 checks). |
 | Lint | `npm run lint` | Passed: no ESLint warnings or errors. `next lint` printed its own deprecation notice. |
-| Production build | `npm run build` | Passed. All routes compiled, type-checked and generated; `/snapshot/[id]` is dynamic, the other pages are static. |
-| Icon route | `GET /icon.svg` | `200`, `content-type: image/svg+xml`; the page advertises `/icon.svg` and a browser run produced no 4xx responses. |
+| Production build | `npm run build` | Passed. `/`, `/about`, `/start`, `/icon.svg` and `/_not-found` compiled and prerendered; `/start` is 7.65 kB. |
+| Icon route | `GET /icon.svg` | Served by the production build; the new leaf icon is advertised in the page head. |
 
-## Production browser journey
+## Browser flow — local production build
 
 | ID | Check | Observed result |
 |---|---|---|
-| T01 | Synthetic example from the landing page | `/journey?demo=1` loaded with `Example Stock` and the synthetic label on the journey and on the saved snapshot. |
-| T02 | Optional amount left blank | Clearing the amount replaced the arithmetic box with “Enter an optional positive amount…” and Continue remained usable. |
-| T03 | Invalid amount | `-10` was rejected with “Enter an amount above zero…” and focus returned to the amount field. |
-| T04 | Valid arithmetic | `3500` at 30% showed `₹1,050.00 less` and the “not a prediction” wording. |
-| T05 | Save and refresh | Saving moved to `/snapshot/48e144df-…`; after a full refresh the title, amount, claims, original question and synthetic label were still present. The draft key was removed after saving. |
-| T06 | Edit and save | The question and title were changed and saved. The snapshot showed the new question/title while “Then and now” retained the original question and rationale. |
-| T07 | Dated review | A review with what changed, what still held, next question and confidence saved; the page showed `REVIEW 1 · 22 NOV 2026` with the original reflection still visible. |
-| T08 | JSON export | `/about` download produced `growerr-data.json`. Parsing it showed 1 snapshot, `isSyntheticDemo: true`, amount 3500, 30%, the saved review, the original question and `draft: null`. |
-| T09 | Delete dialog, Escape and Cancel | The dialog had `role="alertdialog"`, correct labelling and focus on Cancel. Escape and the Cancel button both closed it and left the record intact. |
-| T10 | Confirm deletion | Confirming removed the record, redirected to `/library` and showed “No decisions saved here yet.” |
-| T11 | Clear-all Cancel and confirm | With a saved draft, Cancel left both storage keys; confirming removed the records and draft keys and showed the removal status. |
-| T12 | Corrupted storage recovery | Injecting `corrupted json` into the records key made `/library` show the read error and recovery link. Export from `/about` downloaded `growerr-recovery.json` containing the raw corrupted text; clear-all then removed both keys. |
-| T13 | Keyboard navigation | On `/`, the first Tab focused “Skip to content”; Enter set `#main` and the next Tab reached the first main action. On `/start`, seven Tabs reached the first scenario; Enter opened the journey, focus moved to the step heading, and the next Tab reached the question textarea. Escape closed the delete dialog. |
-| T14 | Responsive layout | Chrome runs at 360×800, 768×900 and 1440×900 on `/`, `/journey?demo=1`, `/about` and a snapshot found `scrollWidth === innerWidth` (no horizontal page overflow). The landing was block layout at 360/768 and grid at 1440; the three steps were one column at 360/768 and three columns at 1440; step actions wrapped at 360; the smallest button/input height was about 44 px. No page or console errors were recorded. |
-| T15 | Synthetic data in the layout check | The snapshot used for T14 was the exported synthetic snapshot injected into a fresh browser profile; the synthetic label, original question and dated review were present. |
+| B01 | Routes and titles | `/`, `/start` and `/about` returned `200`. Titles were “Growerr — a clearer first step into investing”, “Find your starting point — Growerr” and “Privacy & independence — Growerr”. |
+| B02 | Entry and initial state | “Find my starting point” opened `/start`. Step 1 showed progress `aria-valuenow="1"`, “0 answered”, the heading had focus, and Continue was disabled until an answer was chosen. |
+| B03 | Persistence | Selecting “Learn by doing” enabled Continue and wrote `{"goal":"learn"}` to `growerr:onboarding:v1`. |
+| B04 | Back navigation | After moving to step 2, Back returned to step 1 with “Learn by doing” still selected. |
+| B05 | Complete six-step flow | Answers were given for reason, timeline, 20% drop reaction, starting amount, experience, and priority. The last step showed “See my starting point”; the summary appeared after submitting. |
+| B06 | Summary content | The summary showed six answer cards: Learn by doing; 7 years or more; “You would hold on, even if a fall felt uncomfortable.”; ₹500 – ₹5,000; Complete beginner; Understanding as I go. It showed three “Explore first” topics. |
+| B07 | Groww handoff | The “Continue to Groww” link had `href="https://groww.in/"`, `target="_blank"`, and `rel="noopener noreferrer"`. The page stated that the link opens in a new tab and that answers are not sent anywhere. |
+| B08 | Copy summary | “Copy my starting point” put the six rows, three topics, and the independent/not-advice sentence on the clipboard. |
+| B09 | Edit from summary | “Change” on Your timeline opened step 2, and choosing “3 to 7 years” returned directly to the summary with the card updated. |
+| B10 | Reload | Reloading `/start` reopened the saved summary instead of restarting the questions. |
+| B11 | Start over | “Start over” cleared `growerr:onboarding:v1` and returned to step 1 with no answer selected. |
+| B12 | Keyboard | The first Tab focused “Skip to content”; Enter set `#main`. In the radio group, ArrowDown selected the next option. After Continue, focus moved to the next step heading. |
+| B13 | Delete answers dialog | “Delete my answers” opened an `alertdialog` with focus on Cancel. Cancel kept the stored answer; confirming removed the key and showed “Your onboarding answers were removed from this browser.” |
+| B14 | Responsive layout | At 360×800, 768×900 and 1440×900 on `/`, `/start`, `/about` and the saved summary, `documentElement.scrollWidth === innerWidth` and `body.scrollWidth === innerWidth` (no horizontal page overflow). |
+| B15 | Visual review | Screenshots at 1440, 768 and 360 px were inspected. The hero preview, question cards, summary cards, Groww handoff, About page and mobile stacking were legible with no clipped controls. |
+| B16 | Runtime errors | No page errors or console errors were recorded in the desktop or mobile runs. |
 
-## Fixes made during verification
+## Changes made for this revision
 
-- `tests/run.mjs`: use `fileURLToPath` so the TypeScript compile step works on Windows instead of passing `/C:/...` paths.
-- `components/Snapshot.tsx`: memoised the record loader so the effect dependency list is complete and lint is clean.
-- `package.json` / lockfile: upgraded Next.js and `eslint-config-next` from 15.5.3 to 15.5.29 after npm reported a security advisory for 15.5.3.
-- `app/icon.svg`: added the site icon so the served page advertises an icon instead of producing a console 404.
-- `README.md`: updated the supported Node version and the now-verified install/build status.
+- Replaced the previous decision-reflection product with a six-question onboarding flow and a Groww handoff.
+- Removed the unused journey, library, snapshot, learn, and old data modules.
+- Added `lib/onboarding.ts`, `components/Onboarding.tsx`, and `components/PrivacyActions.tsx`.
+- Rewrote the landing and privacy pages, metadata, navigation, footer, site icon, and visual system.
+- Saved partial answers in browser storage and restored a completed summary on return.
+- Added edit-from-summary, start-over, copy-summary, and clear-my-answers controls.
+- Converted internal hash links to `next/link` so lint passes.
+- Suppressed the focus ring on programmatically focused `h1` elements, which are not keyboard tab stops.
+- Moved the hero “Made for beginners” card below the preview so it no longer covers the preview footer.
 
 ## Not run
 
-- No screen-reader session, automated accessibility audit (axe), external participant test or usability score.
+- No screen-reader session, automated accessibility audit (axe), external participant test, or usability score.
 - No claim is made about browsers or devices other than the Chrome/Chromium runs above.
+- No real Groww account creation, login, payment, or trading flow was attempted.
 
 ## Deployment
 
-- GitHub repository: `https://github.com/aeejeyy/growerr` (private), commit `5696d4f` on `main`.
-- Vercel project `growerr`: Git repository `aeejeyy/growerr` (GitHub), Production Branch `main`; the deployment listed as Ready under Production.
+- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`.
+- Vercel project `growerr`: connected to `aeejeyy/growerr`, Production Branch `main`.
 - Production URL: `https://growerr.vercel.app`.
-- Verified on 22 November 2026 from a fresh isolated Chrome context with no cookies or local storage (no Vercel session), so the check was effectively logged out/private:
-  - `/`, `/start`, `/journey?demo=1`, `/library`, `/learn`, `/about` and `/snapshot/not-a-real-id` all returned `200`; no Vercel authentication/protection page appeared.
-  - The full synthetic journey passed on the production URL: optional/invalid amount handling, ₹3,500 at 30% showing ₹1,050.00, save, refresh, edit with the original question retained, dated review, JSON export (1 synthetic snapshot, 1 review, 30%), Escape/Cancel/confirm deletion.
-  - At 360 px, `/`, `/journey?demo=1`, `/about`, `/learn` and a saved snapshot had `scrollWidth === innerWidth` with no page overflow.
-  - Keyboard checks on production: skip link focused first, Enter reached `#main`, next Tab reached the first main action, seven Tabs reached the first scenario, Enter opened the journey with focus on the step heading, and the next Tab reached the question textarea.
-  - No page errors or console errors were recorded.
-
-The site is public and has no application login. Because records live in browser `localStorage`, a snapshot created in one browser cannot be opened from another browser or device.
+- This revision is being deployed through the existing GitHub-to-Vercel connection; production verification is recorded below after the deployment is Ready.

@@ -5,34 +5,104 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+
 const dir = mkdtempSync(join(tmpdir(), 'growerr-tests-'));
+let checks = 0;
+
 try {
-  execFileSync('node', [requireResolveTsc(), fileURLToPath(new URL('../lib/types.ts', import.meta.url)), fileURLToPath(new URL('../lib/math.ts', import.meta.url)), fileURLToPath(new URL('../lib/storage.ts', import.meta.url)), '--target', 'ES2020', '--module', 'Node16', '--moduleResolution', 'node16', '--skipLibCheck', '--outDir', dir], { stdio: 'pipe', cwd: dir });
-  const math = await import(pathToFileURL(join(dir, 'math.js')));
-  assert.equal(math.illustrativeDecline(3500, 10), 350);
-  assert.equal(math.illustrativeDecline(3500, 30), 1050);
-  assert.throws(() => math.illustrativeDecline(-10, 10));
-  assert.throws(() => math.illustrativeDecline(NaN, 10));
-  const data = new Map();
-  global.window = { localStorage: { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: (key) => data.delete(key) } };
-  const storage = await import(pathToFileURL(join(dir, 'storage.js')));
-  const types = await import(pathToFileURL(join(dir, 'types.js')));
-  assert.equal(storage.readDraft(), null);
-  const draft = types.blankDraft('exploring'); draft.title = 'Learn before deciding'; draft.decisionQuestion = 'What am I trying to understand?';
-  storage.saveDraft(draft); assert.equal(storage.readDraft().title, draft.title);
-  const demo = types.demoDraft(); assert.equal(demo.isSyntheticDemo, true);
-  const now = new Date().toISOString();
-  const record = { ...draft, id: 'test-1', schemaVersion: 1, createdAt: now, updatedAt: now, reviews: [] };
-  storage.upsertRecord(record); assert.equal(storage.getRecord('test-1').title, draft.title);
-  storage.upsertRecord({ ...record, title: 'Updated' }); assert.equal(storage.getRecord('test-1').title, 'Updated');
-  const review = { id: 'review-1', createdAt: now, whatChanged: 'My understanding', whatStillHolds: 'My question', nextQuestion: '' };
-  storage.upsertRecord({ ...record, reviews: [review] }); assert.equal(storage.getRecord('test-1').reviews[0].whatChanged, 'My understanding');
-  assert.equal(JSON.parse(storage.exportData()).snapshots.length, 1);
-  storage.removeRecord('test-1'); assert.equal(storage.listRecords().length, 0);
-  data.set('growerr:records:v1', 'corrupted json');
-  assert.throws(() => storage.listRecords(), /Saved data could not be read/);
-  assert.match(storage.exportRawData(), /corrupted json/);
-  storage.clearAll(); assert.equal(storage.listRecords().length, 0); assert.equal(storage.readDraft(), null);
-  console.log('PASS: arithmetic, invalid values, draft, demo label, create/edit/review/delete, export, corrupted data, clear-all (12 checks)');
-} finally { rmSync(dir, { recursive: true, force: true }); }
-function requireResolveTsc() { return createRequire(import.meta.url).resolve('typescript/lib/tsc.js', { paths: [process.cwd(), '/home/user'] }); }
+  execFileSync('node', [
+    requireResolveTsc(),
+    fileURLToPath(new URL('../lib/onboarding.ts', import.meta.url)),
+    '--target', 'ES2020',
+    '--module', 'Node16',
+    '--moduleResolution', 'node16',
+    '--skipLibCheck',
+    '--outDir', dir
+  ], { stdio: 'pipe', cwd: dir });
+
+  const onboarding = await import(pathToFileURL(join(dir, 'onboarding.js')));
+
+  assert.equal(onboarding.questions.length, 6);
+  checks++;
+  assert.deepEqual(onboarding.questions.map((question) => question.key), ['goal', 'horizon', 'risk', 'budget', 'experience', 'priority']);
+  checks++;
+
+  for (const question of onboarding.questions) {
+    assert.ok(question.options.length >= 3, question.key + ' should offer real choices');
+    assert.equal(new Set(question.options.map((option) => option.value)).size, question.options.length, question.key + ' values must be unique');
+    assert.ok(question.title.endsWith('?'), question.key + ' should ask a question');
+    checks += 2;
+  }
+
+  assert.equal(onboarding.optionLabel('goal', 'grow'), 'Grow my money');
+  checks++;
+  assert.equal(onboarding.optionLabel('priority', 'missing'), 'missing');
+  checks++;
+
+  const sample = {
+    goal: 'learn',
+    horizon: 'long',
+    risk: 'hold',
+    budget: '500to5k',
+    experience: 'new',
+    priority: 'learn'
+  };
+
+  assert.equal(onboarding.isCompleteAnswers(sample), true);
+  checks++;
+  assert.equal(onboarding.isCompleteAnswers({ ...sample, risk: undefined }), false);
+  checks++;
+  assert.equal(onboarding.isCompleteAnswers({ ...sample, risk: 'yolo' }), false);
+  checks++;
+  assert.equal(onboarding.isCompleteAnswers('not an object'), false);
+  checks++;
+
+  assert.deepEqual(onboarding.sanitizeAnswers({ goal: 'grow', risk: 'yolo', extra: 'ignored' }), { goal: 'grow' });
+  checks++;
+  assert.deepEqual(onboarding.sanitizeAnswers(null), {});
+  checks++;
+
+  const rows = onboarding.summaryRows(sample);
+  assert.equal(rows.length, 6);
+  checks++;
+  assert.equal(rows[0].value, 'Learn by doing');
+  checks++;
+  assert.match(rows[2].value, /hold on/);
+  checks++;
+
+  const privateBudget = onboarding.summaryRows({ ...sample, budget: 'private' });
+  assert.equal(privateBudget[3].value, 'Prefer not to say');
+  checks++;
+
+  const topics = onboarding.suggestedTopics(sample);
+  assert.equal(topics.length, 3);
+  checks++;
+  assert.ok(topics.includes('Investing basics and common account types'));
+  checks++;
+
+  const shortGoal = onboarding.suggestedTopics({ ...sample, goal: 'goal', horizon: 'short', priority: 'safety' });
+  assert.ok(shortGoal.length <= 3);
+  checks++;
+
+  const text = onboarding.summaryText(sample);
+  assert.match(text, /My Growerr starting point/);
+  assert.match(text, /Learn by doing/);
+  assert.match(text, /not affiliated with Groww/);
+  checks += 3;
+
+  assert.equal(onboarding.GROWW_URL, 'https://groww.in/');
+  checks++;
+  assert.equal(onboarding.progressPercent(0), 17);
+  assert.equal(onboarding.progressPercent(5), 100);
+  checks += 2;
+  assert.equal(onboarding.answeredCount({ goal: 'grow', risk: 'hold' }), 2);
+  checks++;
+
+  console.log(`PASS: 6-question model, unique options, validation, sanitising, summary, topics, copy text, Groww URL and progress (${checks} checks)`);
+} finally {
+  rmSync(dir, { recursive: true, force: true });
+}
+
+function requireResolveTsc() {
+  return createRequire(import.meta.url).resolve('typescript/lib/tsc.js', { paths: [process.cwd(), '/home/user'] });
+}

@@ -1,12 +1,23 @@
 # Growerr
 
-A mobile-first, browser-local investment decision reflection tool. It helps people understand terminology and uncertainty, record unverified claims and their own reasoning, and revisit a decision. It does not provide personalized advice or execute trades.
+A free, independent onboarding experience for people who are new to investing. Six simple questions become a plain-language starting point, and then the user can continue to Groww to explore account options and beginner guides.
+
+Growerr is not a broker, does not open accounts or execute trades, is not affiliated with Groww, and does not provide investment advice.
+
+## The flow
+
+1. **Landing** — a short explanation of what Growerr does, who it is for, and how the Groww handoff works.
+2. **Six questions** — one question per screen: reason, timeline, reaction to a market fall, optional starting amount, experience, and what matters most.
+3. **Starting point** — a six-row summary with an “Explore first” list of educational topics. Every answer can be changed from the summary.
+4. **Continue to Groww** — a clearly labelled external link to `https://groww.in/`, opened in a new tab with `noopener noreferrer`.
+
+Answers are saved under the versioned key `growerr:onboarding:v1` in this browser only. They are not posted to a server or shared with Groww. A returning visitor sees their saved summary. “Start over” on the summary or “Delete my answers” on `/about` removes the saved data.
 
 ## Run locally
 
-Requires Node.js 20.9 or later and npm with access to the package registry. Install the locked dependencies, then run:
+Requires Node.js 20.9 or later and npm with access to the package registry.
 
-1. `npm install` (or `npm ci`)
+1. `npm ci` (or `npm install`)
 2. `npm run dev`
 3. Open `http://localhost:3000`
 4. Run `npm test`, `npm run lint`, and `npm run build` before deployment.
@@ -15,28 +26,26 @@ Requires Node.js 20.9 or later and npm with access to the package registry. Inst
 
 ## Routes
 
-- `/`: landing, privacy summary and links to a new or synthetic journey
-- `/start`: choose Exploring, Considering, or Revisiting
-- `/journey`: five-step draft with local autosave; query parameters `scenario=...`, `demo=1`, and `edit=...` select the entry path
-- `/library`: saved snapshots
-- `/snapshot/[id]`: edit, review, and delete one snapshot
-- `/learn`: plain-language glossary
-- `/about`: methodology, privacy, data export and clear-all
+- `/` — landing page, explanation, and calls to action
+- `/start` — the six-question onboarding and summary
+- `/about` — privacy, independence, what is asked and why, and clear-my-answers
+- `/icon.svg` — site icon
 
-## Data and safety
+## Privacy and independence
 
-Drafts and snapshots use versioned `localStorage` keys, with no server account. The JSON export includes snapshots, draft, schema version and synthetic labels. Malformed stored content is preserved for raw export from About, rather than automatically destroyed. Clearing browser data loses the records; there is no cloud sync or encrypted backup. Avoid typing personal identifiers into free-text fields.
-
-The downside display is arithmetic only. It accepts an optional positive hypothetical amount and a 10%, 20%, or 30% decline; it is not a forecast or maximum loss. Every advice claim is labelled unverified. Sample data uses the fictional `Example Stock` and is labelled synthetic wherever it appears.
+- No account, name, email, phone number, PAN, Aadhaar, bank details, broker login, holdings, or income details.
+- No server-side storage, analytics script, or mailing list.
+- No answers are sent to Groww; the Groww link opens a separate platform under its own terms and privacy policy.
+- The summary and suggested topics are educational, not recommendations. Investments can fall as well as rise.
 
 ## Deployment
 
 Live production deployment: **https://growerr.vercel.app**
 
-The Vercel project `growerr` is connected to the GitHub repository `aeejeyy/growerr` and deploys the `main` branch with the standard Next.js preset. No secrets or external integrations are required. The live routes and main journey were checked in a fresh isolated browser profile; see `EVIDENCE.md`. Because decisions live in `localStorage`, another browser cannot open the same snapshot ID.
+The Vercel project `growerr` is connected to the private GitHub repository `aeejeyy/growerr` and deploys the `main` branch with the standard Next.js preset. No secrets, environment variables, or external integrations are required. Local and production browser checks are recorded in `EVIDENCE.md`.
 
 ## Testing and honest limitations
 
-`npm test` checks deterministic arithmetic, invalid values, local draft, synthetic fixture, snapshot create/edit/review/delete, JSON export, corrupted data, and clear-all. Dependency installation, tests, lint, production build, the main browser journey, keyboard focus order and responsive layouts were run locally and are recorded in `EVIDENCE.md`. No screen-reader session, axe audit, external participant test or usability score has been completed. Complete any additional checks you need before release.
+`npm test` covers the six-question model, option uniqueness, answer validation and sanitising, summary rows, suggested topics, copy text, the Groww URL, and progress calculations. Dependency installation, tests, lint, production build, the full browser flow, keyboard focus, and responsive widths were run locally and against the production URL; see `EVIDENCE.md`.
 
-The applicant must write their own 300–700-word first-person submission. Do not present this code or the synthetic fixture as participant validation or live market research.
+No screen-reader session, automated accessibility audit (axe), external participant test, or usability score has been completed. No claim is made about browsers or devices beyond the Chrome/Chromium runs recorded in the evidence log.
