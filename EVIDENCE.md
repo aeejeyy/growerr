@@ -60,7 +60,15 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
 
 ## Deployment
 
-- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`.
+- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`, revision `2b3a636`.
 - Vercel project `growerr`: connected to `aeejeyy/growerr`, Production Branch `main`.
-- Production URL: `https://growerr.vercel.app`.
-- This revision is being deployed through the existing GitHub-to-Vercel connection; production verification is recorded below after the deployment is Ready.
+- Production URL: `https://growerr.vercel.app` (alias of deployment `growerr-dwrt1jxhx-aditya-joshis-projects-7f4e2310.vercel.app`, ID `dpl_66mXsmoFdHBC5mptdg2Xhw6JSzw3`, status Ready).
+- Verified on 22 November 2026 from a fresh isolated Chrome context with no cookies or local storage, so the check was effectively logged out/private:
+  - `/`, `/start` and `/about` returned `200` with the new titles; no Vercel authentication or protection page appeared.
+  - The full six-question flow passed: disabled Continue before selection, saved partial answers, Back preserving an answer, all six steps, summary with six rows and three topics, and the Groww handoff configured as `https://groww.in/` with `target="_blank"` and `rel="noopener noreferrer"`.
+  - Copy-summary, edit-from-summary, reload-restores-summary, and start-over-clears-storage all passed on the public URL.
+  - The About-page delete dialog focused Cancel; Cancel preserved the saved answer; confirming removed it and showed the status message.
+  - Keyboard checks passed: skip link to `#main`, ArrowDown inside the radio group, and focus moving to the next step heading after Continue.
+  - At 360×800 and 768×900, `/`, `/start`, `/about` and the saved summary had `scrollWidth === innerWidth` with no page overflow.
+  - No page errors or console errors were recorded.
+- No Groww login, account creation, payment, or trading step was performed. The public site contains no application authentication; records remain local to each browser.
