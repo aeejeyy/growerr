@@ -60,9 +60,9 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
 
 ## Deployment
 
-- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`, revision `2b3a636`.
+- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`; onboarding code revision `2b3a636`.
 - Vercel project `growerr`: connected to `aeejeyy/growerr`, Production Branch `main`.
-- Production URL: `https://growerr.vercel.app` (alias of deployment `growerr-dwrt1jxhx-aditya-joshis-projects-7f4e2310.vercel.app`, ID `dpl_66mXsmoFdHBC5mptdg2Xhw6JSzw3`, status Ready).
+- Production URL: `https://growerr.vercel.app` (alias of the current Ready Production deployment listed by Vercel).
 - Verified on 22 November 2026 from a fresh isolated Chrome context with no cookies or local storage, so the check was effectively logged out/private:
   - `/`, `/start` and `/about` returned `200` with the new titles; no Vercel authentication or protection page appeared.
   - The full six-question flow passed: disabled Continue before selection, saved partial answers, Back preserving an answer, all six steps, summary with six rows and three topics, and the Groww handoff configured as `https://groww.in/` with `target="_blank"` and `rel="noopener noreferrer"`.
