@@ -31,7 +31,9 @@ The downside display is arithmetic only. It accepts an optional positive hypothe
 
 ## Deployment
 
-Connect this repository to a Next.js-capable host, such as Vercel. Use the standard framework preset and no secrets or external integrations. Run dependency installation and build first, then verify every route with a logged-out private browser window, including direct refresh on a snapshot route in the same browser. Since decisions live locally, another browser cannot open the same snapshot ID. Do not put an app URL in the assignment until it has been deployed and checked.
+Live production deployment: **https://growerr.vercel.app**
+
+The Vercel project `growerr` is connected to the GitHub repository `aeejeyy/growerr` and deploys the `main` branch with the standard Next.js preset. No secrets or external integrations are required. The live routes and main journey were checked in a fresh isolated browser profile; see `EVIDENCE.md`. Because decisions live in `localStorage`, another browser cannot open the same snapshot ID.
 
 ## Testing and honest limitations
 

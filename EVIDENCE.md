@@ -54,4 +54,14 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
 
 ## Deployment
 
-Pending. Record the production URL, the production-branch deployment result and the logged-out private-browser check here after they are completed.
+- GitHub repository: `https://github.com/aeejeyy/growerr` (private), commit `5696d4f` on `main`.
+- Vercel project `growerr`: Git repository `aeejeyy/growerr` (GitHub), Production Branch `main`; the deployment listed as Ready under Production.
+- Production URL: `https://growerr.vercel.app`.
+- Verified on 22 November 2026 from a fresh isolated Chrome context with no cookies or local storage (no Vercel session), so the check was effectively logged out/private:
+  - `/`, `/start`, `/journey?demo=1`, `/library`, `/learn`, `/about` and `/snapshot/not-a-real-id` all returned `200`; no Vercel authentication/protection page appeared.
+  - The full synthetic journey passed on the production URL: optional/invalid amount handling, ₹3,500 at 30% showing ₹1,050.00, save, refresh, edit with the original question retained, dated review, JSON export (1 synthetic snapshot, 1 review, 30%), Escape/Cancel/confirm deletion.
+  - At 360 px, `/`, `/journey?demo=1`, `/about`, `/learn` and a saved snapshot had `scrollWidth === innerWidth` with no page overflow.
+  - Keyboard checks on production: skip link focused first, Enter reached `#main`, next Tab reached the first main action, seven Tabs reached the first scenario, Enter opened the journey with focus on the step heading, and the next Tab reached the question textarea.
+  - No page errors or console errors were recorded.
+
+The site is public and has no application login. Because records live in browser `localStorage`, a snapshot created in one browser cannot be opened from another browser or device.
