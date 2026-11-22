@@ -104,7 +104,7 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
 
 ## Deployment
 
-- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`; onboarding code revision `2b3a636`.
+- GitHub repository: `https://github.com/aeejeyy/growerr` (private), branch `main`; onboarding baseline `2b3a636`, coach revision `cc108bd`.
 - Vercel project `growerr`: connected to `aeejeyy/growerr`, Production Branch `main`.
 - Production URL: `https://growerr.vercel.app` (alias of the current Ready Production deployment listed by Vercel).
 - Verified on 22 November 2026 from a fresh isolated Chrome context with no cookies or local storage, so the check was effectively logged out/private:
@@ -116,3 +116,13 @@ Checks recorded on 22 November 2026 from `C:\Growwer\growerr`. No external parti
   - At 360×800 and 768×900, `/`, `/start`, `/about` and the saved summary had `scrollWidth === innerWidth` with no page overflow.
   - No page errors or console errors were recorded.
 - No Groww login, account creation, payment, or trading step was performed. The public site contains no application authentication; records remain local to each browser.
+
+### Coach revision on the public URL
+
+- Coach revision `cc108bd` was pushed to `main`. The Vercel CLI listed the newest deployment for the `growerr` project as **Ready** in the Production environment after the push.
+- `https://growerr.vercel.app` was checked again from fresh isolated Chrome contexts with no cookies or local storage, so the check was effectively logged out/private. No authentication or Vercel protection page appeared.
+- `/`, `/start`, `/about`, and `/coach` returned `200`. The About page contained the optional-guide section, the AI/static fallback explanation, and the SEBI-registered Investment Adviser boundary. `/api/coach` rejected `GET` with `405`, as expected for a POST-only route.
+- Production API POST checks matched local checks: static `missing_key` fallback for a normal question, `sensitive` and `advice_boundary` short-circuits, an accepted open answer, and `400` for an empty message. All responses included `Cache-Control: no-store`.
+- The coach browser script passed on the public URL: static badge and source link, sensitive text cleared with zero API requests, advice boundary, “Not sure” reflection, clear-conversation control, onboarding-answer isolation, no page overflow at 768 and 360 px, and no page or console errors.
+- The full onboarding browser script also passed on the public URL after the coach change, including the Groww handoff (`https://groww.in/`, `target="_blank"`, `rel="noopener noreferrer"`), persistence, edit, start over, deletion, keyboard focus, and responsive widths.
+- No `GEMINI_API_KEY` was configured for these checks, so only the static fallback path was verified. No live Gemini success is claimed.
