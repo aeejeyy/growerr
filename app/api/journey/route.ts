@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { detectSensitive, isAdviceRequest, safeEcho } from '../../../lib/education';
-import { AiError, aiConfigured, discoverModels, generateJson } from '../../../lib/ai/gemini';
+import { AiError, aiConfigured, coolingModels, discoverModels, generateJson } from '../../../lib/ai/gemini';
 import { EVALUATION_SCHEMA, EVALUATION_SYSTEM, evaluationPrompt, validateEvaluation } from '../../../lib/journey/ai-evaluator';
 import {
   DISCOVERY_SCHEMA,
@@ -17,7 +17,7 @@ import type { ExperienceLevel, HistoryTurn, Intent, JourneyState } from '../../.
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const isRecord = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
@@ -69,9 +69,9 @@ export async function GET(request: Request) {
       schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
       maxOutputTokens: 50
     });
-    return json({ ...base, probe: 'ok', model, ms: Date.now() - started, available: await discoverModels() });
+    return json({ ...base, probe: 'ok', model, ms: Date.now() - started, available: await discoverModels(), cooling: coolingModels() });
   } catch (error) {
-    return json({ ...base, probe: 'failed', error: error instanceof Error ? error.message : 'unknown', ms: Date.now() - started, available: await discoverModels() });
+    return json({ ...base, probe: 'failed', error: error instanceof Error ? error.message : 'unknown', ms: Date.now() - started, available: await discoverModels(), cooling: coolingModels() });
   }
 }
 

@@ -27,12 +27,22 @@ export default function DiscoveryChat({
 }) {
   const [draft, setDraft] = useState('');
   const [warning, setWarning] = useState('');
+  const [slow, setSlow] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const userTurns = state.messages.filter((m) => m.role === 'user').length;
   const canPlan = userTurns > 0 && state.intent !== 'unclear';
   const last = state.messages[state.messages.length - 1];
   const awaitingAnswer = userTurns > 0 && last?.role === 'guide' && last.text.trim().endsWith('?');
+
+  useEffect(() => {
+    if (!busy) {
+      setSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlow(true), 4000);
+    return () => window.clearTimeout(timer);
+  }, [busy]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -103,10 +113,13 @@ export default function DiscoveryChat({
         ))}
         {busy && (
           <div className="flex justify-start" aria-label="Guide is typing">
-            <div className="flex gap-1 rounded-2xl rounded-bl-md bg-canvas px-4 py-4">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="h-2 w-2 animate-pulse-dot rounded-full bg-ink-faint" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
+            <div className="flex items-center gap-3 rounded-2xl rounded-bl-md bg-canvas px-4 py-3.5">
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="h-2 w-2 animate-pulse-dot rounded-full bg-ink-faint" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+              {slow && <span className="text-xs text-ink-muted" aria-live="polite">Thinking it through — this can take a few seconds…</span>}
             </div>
           </div>
         )}
