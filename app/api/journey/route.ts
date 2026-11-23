@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { detectSensitive, isAdviceRequest, safeEcho } from '../../../lib/education';
-import { AiError, aiConfigured, generateJson } from '../../../lib/ai/gemini';
+import { AiError, aiConfigured, discoverModels, generateJson } from '../../../lib/ai/gemini';
 import { EVALUATION_SCHEMA, EVALUATION_SYSTEM, evaluationPrompt, validateEvaluation } from '../../../lib/journey/ai-evaluator';
 import {
   DISCOVERY_SCHEMA,
@@ -69,9 +69,9 @@ export async function GET(request: Request) {
       schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
       maxOutputTokens: 50
     });
-    return json({ ...base, probe: 'ok', model, ms: Date.now() - started });
+    return json({ ...base, probe: 'ok', model, ms: Date.now() - started, available: await discoverModels() });
   } catch (error) {
-    return json({ ...base, probe: 'failed', error: error instanceof Error ? error.message : 'unknown', ms: Date.now() - started });
+    return json({ ...base, probe: 'failed', error: error instanceof Error ? error.message : 'unknown', ms: Date.now() - started, available: await discoverModels() });
   }
 }
 
