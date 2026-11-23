@@ -57,8 +57,22 @@ function contextState(value: unknown, userTurns: number): JourneyState {
 const SENSITIVE_REPLY =
   "I've ignored that part — please don't share PAN, Aadhaar, bank or card numbers, OTPs, passwords or exact holdings here. I never need them. What would you like to understand?";
 
-export async function GET() {
-  return json({ ok: true, ai: aiConfigured() ? 'configured' : 'not-configured' });
+export async function GET(request: Request) {
+  const base = { ok: true, ai: aiConfigured() ? 'configured' : 'not-configured' };
+  if (!aiConfigured() || new URL(request.url).searchParams.get('probe') !== '1') return json(base);
+  // Diagnostic: a tiny structured call reporting which model answered and how fast.
+  const started = Date.now();
+  try {
+    const { model } = await generateJson({
+      system: 'Return JSON only.',
+      prompt: 'Return {"ok": true}.',
+      schema: { type: 'object', properties: { ok: { type: 'boolean' } }, required: ['ok'] },
+      maxOutputTokens: 50
+    });
+    return json({ ...base, probe: 'ok', model, ms: Date.now() - started });
+  } catch (error) {
+    return json({ ...base, probe: 'failed', error: error instanceof Error ? error.message : 'unknown', ms: Date.now() - started });
+  }
 }
 
 export async function POST(request: Request) {

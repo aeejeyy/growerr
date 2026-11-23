@@ -54,7 +54,10 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
             responseMimeType: 'application/json',
             responseSchema: options.schema,
             temperature: options.temperature ?? 0.3,
-            maxOutputTokens: options.maxOutputTokens ?? 2048
+            maxOutputTokens: options.maxOutputTokens ?? 2048,
+            // Thinking adds many seconds of latency; these are short classification tasks.
+            ...(/2\.5-flash/.test(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            ...(/gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: 'low' } } : {})
           },
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
