@@ -8,6 +8,7 @@ import { buildSummary, summaryText } from '../../lib/journey/summary';
 import type { ExperienceId, JourneyState } from '../../lib/journey/types';
 import { PlanList } from './PlanView';
 import { cx } from '../ui';
+import ExperienceArt from '../art/ExperienceArt';
 
 export default function SummaryView({
   state,
@@ -44,7 +45,7 @@ export default function SummaryView({
 
   return (
     <div className="space-y-5">
-      <section className="card overflow-hidden">
+      <section className="card animate-scale-in overflow-hidden">
         <div className="relative overflow-hidden bg-ink px-5 py-7 text-white sm:px-8 sm:py-9">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/25 blur-3xl" aria-hidden="true" />
           <span className="chip bg-white/10 text-brand-200">
@@ -59,6 +60,23 @@ export default function SummaryView({
             <Metric label="To revisit" value={s.stats.review} />
             <Metric label="Concepts shown" value={s.conceptsDemonstrated.length} />
           </dl>
+          {state.plan.length > 0 && (
+            <ul className="mt-6 flex flex-wrap gap-3" aria-label="Your experiences">
+              {state.plan.map((item, i) => (
+                <li key={item.id} className="relative w-24 animate-pop sm:w-28" style={{ animationDelay: `${200 + i * 90}ms` }} title={EXPERIENCES[item.id].title}>
+                  <div className={cx('overflow-hidden rounded-xl ring-2', item.status === 'demonstrated' ? 'ring-brand-400' : 'opacity-50 ring-white/10 grayscale')}>
+                    <ExperienceArt id={item.id} />
+                  </div>
+                  {item.status === 'demonstrated' && (
+                    <span className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-500 text-white ring-2 ring-ink" aria-hidden="true">
+                      <Check size={13} strokeWidth={3} />
+                    </span>
+                  )}
+                  <span className="sr-only">{EXPERIENCES[item.id].title}: {item.status === 'demonstrated' ? 'demonstrated' : 'not yet demonstrated'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 

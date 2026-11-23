@@ -22,7 +22,7 @@ function section(name) { console.log(`• ${name}`); }
 try {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const tsc = join(root, 'node_modules', 'typescript', 'bin', 'tsc');
-  const files = ['education.ts', 'constants.ts', 'ai/gemini.ts', ...['text', 'types', 'profile', 'experiences', 'evaluation', 'discovery', 'engine', 'storage', 'summary', 'ai-evaluator'].map((f) => `journey/${f}.ts`)].map((f) => join(root, 'lib', f));
+  const files = ['education.ts', 'constants.ts', 'ai/gemini.ts', ...['text', 'types', 'profile', 'experiences', 'evaluation', 'discovery', 'engine', 'storage', 'summary', 'ai-evaluator', 'quickstart'].map((f) => `journey/${f}.ts`)].map((f) => join(root, 'lib', f));
   execFileSync(process.execPath, [tsc, '--outDir', dir, '--rootDir', join(root, 'lib'), '--module', 'commonjs', '--target', 'es2022', '--moduleResolution', 'node', '--esModuleInterop', '--skipLibCheck', '--strict', ...files], { stdio: 'inherit' });
   writeFileSync(join(dir, 'package.json'), '{"type":"commonjs"}');
   const require = createRequire(join(dir, 'x.js'));
@@ -35,6 +35,7 @@ try {
   const S = require('./journey/storage.js');
   const SUM = require('./journey/summary.js');
   const AE = require('./journey/ai-evaluator.js');
+  const Q = require('./journey/quickstart.js');
 
   const rightAnswer = (c) => c.kind === 'choice' ? c.correctOptionId : c.kind === 'slider' ? c.accept.min : c.kind === 'sort' ? Object.fromEntries(c.items.map((i) => [i.id, i.bucketId])) : c.modelAnswer;
   const wrongAnswer = (c) => {
@@ -246,6 +247,31 @@ try {
   const lenient = AE.validateEvaluation({ correct: true, feedback: 'Great.', misconceptionIds: [] }, explainCheck, 'ok');
   eq(lenient.correct, false, 'AI evaluation: over-generous grading of a trivial answer is overridden');
   eq(AE.validateEvaluation({ correct: true, feedback: 'You should buy it now.', misconceptionIds: [] }, explainCheck, 'x'), null, 'AI evaluation with advice rejected');
+
+
+  /* ---------------------------------------------------------------- */
+  section('Visual quick start');
+  const fromPicks = (picks) => {
+    let s = S.createInitialState();
+    s = { ...s, messages: [...s.messages, { id: 'u', role: 'user', text: Q.picksSentence(picks), at: '' }] };
+    return D.applyDiscovery(s, Q.quickStartAnalysis(picks));
+  };
+  const qa = fromPicks({ goal: 'grow', level: 'none', topics: ['stocks-vs-funds', 'losing-money'] });
+  eq(qa.intent, 'investing', 'quick start: grow → investing');
+  ok(qa.readyToPlan, 'quick start: ready to plan');
+  const qaPlan = E.planJourney(qa).map((p) => p.id);
+  ok(qaPlan.includes('EXP-02') && qaPlan.includes('EXP-04'), 'quick start: picked topics in plan');
+  ok(qaPlan.indexOf('EXP-01') >= 0 && qaPlan.indexOf('EXP-01') < qaPlan.indexOf('EXP-02'), 'quick start: prerequisite before stocks vs funds');
+  ok(qaPlan.length >= 3 && qaPlan.length <= 5, 'quick start: plan size 3–5');
+  ok(Object.values(qa.profile).every((d) => d.state !== 'demonstrated'), 'quick start never marks demonstrated');
+  const qb = fromPicks({ goal: 'trade', level: 'some', topics: [] });
+  eq(qb.intent, 'trading', 'quick start: trade → trading');
+  eq(E.planJourney(qb)[0].id, 'EXP-05', 'quick start: trading basics start with market orders');
+  const qc = fromPicks({ goal: 'app', level: 'none', topics: ['app-screens'] });
+  eq(E.planJourney(qc)[0].id, 'EXP-08', 'quick start: app tour first');
+  ok(/not sure/i.test(Q.picksSentence({ goal: 'curious', level: 'none', topics: [] })), 'quick start sentence for no topics');
+  for (const t of Q.TOPICS) ok(X.isExperienceId(t.experience), `topic ${t.id} maps to a real experience`);
+  for (const g of Q.GOALS) for (const t of Q.SUGGESTED_TOPICS[g.id]) ok(Q.TOPICS.some((x) => x.id === t), `suggested topic ${t} exists`);
 
   /* ---------------------------------------------------------------- */
   section('Persistence & sanitisation');

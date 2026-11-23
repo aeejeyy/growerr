@@ -24,7 +24,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-IN" className={inter.variable}>
+    <html lang="en-IN" className={inter.variable} suppressHydrationWarning>
+      <head>
+        {/* Enables scroll-reveal styles before first paint; without JS everything is simply visible. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js-reveal')" }} />
+      </head>
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         {children}

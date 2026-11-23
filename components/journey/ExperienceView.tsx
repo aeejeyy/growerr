@@ -10,6 +10,7 @@ import { evaluate } from '../../lib/journey/client';
 import type { Answer } from '../../lib/journey/evaluation';
 import type { JourneyState } from '../../lib/journey/types';
 import { cx } from '../ui';
+import ExperienceArt from '../art/ExperienceArt';
 
 type Props = {
   state: JourneyState;
@@ -90,8 +91,15 @@ export default function ExperienceView({ state, update, onContinueJourney, onSki
             )}
             {progress.runs > 1 && <span className="chip bg-canvas text-ink-soft">Attempt {progress.runs}</span>}
           </div>
-          <h1 className="mt-2.5 text-2xl font-bold tracking-tight text-ink sm:text-[26px]">{exp.title}</h1>
-          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-ink-soft">{exp.objective}</p>
+          <div className="mt-2.5 flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[26px]">{exp.title}</h1>
+              <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-ink-soft">{exp.objective}</p>
+            </div>
+            <div className="art-live hidden w-36 shrink-0 animate-scale-in sm:block md:w-44">
+              <ExperienceArt id={exp.id} />
+            </div>
+          </div>
           {stage === 'lab' && (
             <div className="mt-3">
               <button
@@ -124,14 +132,14 @@ export default function ExperienceView({ state, update, onContinueJourney, onSki
                 <span className="sm:hidden">{s.short}</span>
                 <span className="hidden sm:inline">{s.label}</span>
               </span>
-              <span className={cx('absolute inset-x-0 bottom-0 h-0.5', i <= stageIndex ? 'bg-brand-500' : 'bg-transparent')} />
+              <span className={cx('absolute inset-x-0 bottom-0 h-0.5 origin-left bg-brand-500 transition-transform duration-500', i <= stageIndex ? 'scale-x-100' : 'scale-x-0')} />
             </li>
           ))}
         </ol>
       </header>
 
       {stage === 'lab' && (
-        <section className="space-y-4" aria-label="Interactive simulation">
+        <section key="lab" className="animate-fade-up space-y-4" aria-label="Interactive simulation">
           <div className="flex gap-3 rounded-2xl border border-brand-100 bg-brand-50/70 px-4 py-3.5 sm:px-5">
             <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-500 text-white" aria-hidden="true">
               <MousePointerClick size={15} />
@@ -176,7 +184,7 @@ export default function ExperienceView({ state, update, onContinueJourney, onSki
       )}
 
       {stage === 'checks' && current && (
-        <>
+        <div key="checks" className="animate-slide-in space-y-4">
           <CheckCard
             key={`${current.check.id}-${progress.runs}`}
             check={current.check}
@@ -191,7 +199,7 @@ export default function ExperienceView({ state, update, onContinueJourney, onSki
               <SkipForward size={14} aria-hidden="true" /> Skip this experience
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {stage === 'done' && (
@@ -204,6 +212,26 @@ export default function ExperienceView({ state, update, onContinueJourney, onSki
         />
       )}
     </div>
+  );
+}
+
+/** A small celebratory burst of dots around the result badge. */
+function Burst() {
+  const colors = ['#00D09C', '#5367FF', '#F5A524', '#00A47E', '#EB5B3C', '#5CE0BF'];
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-1/2" aria-hidden="true">
+      {Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        const dist = 30 + (i % 3) * 8;
+        const style = {
+          background: colors[i % colors.length],
+          '--bx': `${Math.cos(angle) * dist}px`,
+          '--by': `${Math.sin(angle) * dist}px`,
+          animationDelay: `${120 + (i % 4) * 30}ms`
+        } as React.CSSProperties;
+        return <span key={i} className="burst-dot absolute h-1.5 w-1.5 rounded-full" style={style} />;
+      })}
+    </span>
   );
 }
 
@@ -253,8 +281,11 @@ function Result({
   return (
     <section className="card animate-fade-up overflow-hidden" aria-labelledby="result-title">
       <div className={cx('px-5 py-6 sm:px-7', demonstrated ? 'bg-gradient-to-br from-brand-50 to-white' : 'bg-gradient-to-br from-warn-50 to-white')}>
-        <span aria-hidden="true" className={cx('grid h-11 w-11 place-items-center rounded-full text-white', demonstrated ? 'bg-brand-600' : 'bg-warn')}>
-          {demonstrated ? <Check size={22} strokeWidth={3} /> : <RotateCcw size={20} />}
+        <span aria-hidden="true" className="relative inline-grid">
+          {demonstrated && <Burst />}
+          <span className={cx('relative grid h-12 w-12 animate-pop place-items-center rounded-full text-white shadow-lift', demonstrated ? 'bg-brand-600' : 'bg-warn')}>
+            {demonstrated ? <Check size={24} strokeWidth={3} /> : <RotateCcw size={20} />}
+          </span>
         </span>
         <h2 id="result-title" className="mt-3 text-xl font-bold text-ink">
           {demonstrated ? 'Understanding demonstrated' : 'Worth another look'}

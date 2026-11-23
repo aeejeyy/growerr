@@ -68,6 +68,26 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
         },
+        'fade-in': { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        'scale-in': {
+          '0%': { opacity: '0', transform: 'scale(0.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' }
+        },
+        'slide-in': {
+          '0%': { opacity: '0', transform: 'translateX(18px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' }
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' }
+        },
+        pop: {
+          '0%': { transform: 'scale(0.6)', opacity: '0' },
+          '60%': { transform: 'scale(1.12)', opacity: '1' },
+          '100%': { transform: 'scale(1)' }
+        },
+        grow: { '0%': { transform: 'scaleX(0)' }, '100%': { transform: 'scaleX(1)' } },
+        shimmer: { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
         pulseDot: {
           '0%, 80%, 100%': { opacity: '0.25', transform: 'scale(0.8)' },
           '40%': { opacity: '1', transform: 'scale(1)' }
@@ -75,7 +95,15 @@ const config: Config = {
       },
       animation: {
         'fade-up': 'fade-up 280ms ease-out both',
-        'pulse-dot': 'pulseDot 1.2s infinite ease-in-out'
+        'pulse-dot': 'pulseDot 1.2s infinite ease-in-out',
+        'fade-in': 'fade-in 400ms ease-out both',
+        'scale-in': 'scale-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        'slide-in': 'slide-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        float: 'float 5s ease-in-out infinite',
+        'float-slow': 'float 7s ease-in-out infinite',
+        pop: 'pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        grow: 'grow 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both',
+        shimmer: 'shimmer 2.4s linear infinite'
       }
     }
   },

@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Map as MapIcon, Pause, Play, RotateCcw, UserRound, X } from 'lucide-react';
+import { ArrowLeft, Map as MapIcon, Pause, Play, RotateCcw, UserRound, X } from 'lucide-react';
 import { Logo } from '../site/Logo';
 import DiscoveryChat from './DiscoveryChat';
+import QuickStart from './QuickStart';
 import ExperienceView from './ExperienceView';
 import PlanView, { PlanList } from './PlanView';
 import SummaryView from './SummaryView';
 import { AdaptationLog, ProfilePanel } from './ProfilePanel';
 import { addToPlan, buildPlan, continueJourney, goToSummary, journeyStats, skipExperience, startExperience } from '../../lib/journey/engine';
 import { discover } from '../../lib/journey/client';
+import { applyDiscovery } from '../../lib/journey/discovery';
+import { GOALS, LEVELS, TOPICS, picksSentence, quickStartAnalysis, type QuickPicks } from '../../lib/journey/quickstart';
+import { newId } from '../../lib/journey/storage';
 import { clearState, createInitialState, loadState, saveState } from '../../lib/journey/storage';
 import type { ExperienceId, JourneyState } from '../../lib/journey/types';
 import { cx } from '../ui';
@@ -23,6 +27,8 @@ export default function JourneyApp() {
   const [resumed, setResumed] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [chatMode, setChatMode] = useState(false);
+  const [draftPicks, setDraftPicks] = useState<Partial<QuickPicks>>({});
 
   useEffect(() => {
     const saved = loadState();
@@ -49,6 +55,25 @@ export default function JourneyApp() {
 
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  /** Tap-only start: turn the picks into a discovery result and go straight to the plan. */
+  const completeQuickStart = useCallback(
+    (picks: QuickPicks) => {
+      const analysis = quickStartAnalysis(picks);
+      const at = new Date().toISOString();
+      update((s) => {
+        const withUser: JourneyState = { ...s, messages: [...s.messages, { id: newId(), role: 'user', text: picksSentence(picks), at }] };
+        const next = applyDiscovery(withUser, analysis);
+        return buildPlan({
+          ...next,
+          messages: [...next.messages, { id: newId(), role: 'guide', text: analysis.reply, source: 'static', at }],
+          log: [...next.log, { at, kind: 'profile' as const, text: 'Started with the quick picks.' }].slice(-40)
+        });
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [update]
+  );
+
   async function send(text: string) {
     if (!stateRef.current) return;
     setBusy(true);
@@ -69,6 +94,8 @@ export default function JourneyApp() {
   }
 
   const stats = journeyStats(state);
+  const userTurns = state.messages.filter((m) => m.role === 'user').length;
+  const showQuick = state.phase === 'discovery' && userTurns === 0 && !chatMode && !busy;
   const open = (id: ExperienceId) => {
     update((s) => startExperience(s, id));
     setSheet(false);
@@ -77,7 +104,7 @@ export default function JourneyApp() {
 
   const sidebar = (
     <div className="space-y-5">
-      {state.phase === 'discovery' && <UnderstoodCard state={state} />}
+      {state.phase === 'discovery' && <UnderstoodCard state={state} picks={showQuick ? draftPicks : undefined} />}
       {state.plan.length > 0 && state.phase === 'experience' && (
         <section aria-labelledby="plan-side-title" className="space-y-3">
           <div className="flex items-center justify-between">
@@ -161,11 +188,24 @@ export default function JourneyApp() {
             </section>
           ) : state.phase === 'discovery' ? (
             <>
-              <div className="px-1">
+              <div className="animate-fade-up px-1">
                 <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Let’s start with you</h1>
-                <p className="mt-1 text-[15px] text-ink-muted">A short conversation so your journey fits what you actually want to understand.</p>
+                <p className="mt-1 text-[15px] text-ink-muted">
+                  {showQuick ? 'Three quick taps and we’ll build a learning plan that fits you.' : 'A short conversation so your journey fits what you actually want to understand.'}
+                </p>
               </div>
-              <DiscoveryChat state={state} busy={busy} onSend={send} onBuildPlan={() => { update(buildPlan); scrollTop(); }} />
+              {showQuick ? (
+                <QuickStart onComplete={completeQuickStart} onChat={() => setChatMode(true)} onPicksChange={setDraftPicks} />
+              ) : (
+                <div className="animate-fade-up">
+                  {userTurns === 0 && (
+                    <button type="button" className="btn-ghost btn-sm mb-2 -ml-2" onClick={() => setChatMode(false)}>
+                      <ArrowLeft size={15} aria-hidden="true" /> Back to quick picks
+                    </button>
+                  )}
+                  <DiscoveryChat state={state} busy={busy} onSend={send} onBuildPlan={() => { update(buildPlan); scrollTop(); }} />
+                </div>
+              )}
             </>
           ) : state.phase === 'plan' ? (
             <PlanView
@@ -227,6 +267,7 @@ export default function JourneyApp() {
                   setState(fresh);
                   setConfirmReset(false);
                   setResumed(false);
+                  setChatMode(false);
                   scrollTop();
                 }}
               >
@@ -240,8 +281,15 @@ export default function JourneyApp() {
   );
 }
 
-function UnderstoodCard({ state }: { state: JourneyState }) {
-  const rows = [
+function UnderstoodCard({ state, picks }: { state: JourneyState; picks?: Partial<QuickPicks> }) {
+  const fromPicks = picks
+    ? [
+        { label: 'Goal', value: GOALS.find((g) => g.id === picks.goal)?.title ?? '' },
+        { label: 'Experience', value: LEVELS.find((l) => l.id === picks.level)?.title ?? '' },
+        { label: 'Want to understand', value: TOPICS.filter((t) => picks.topics?.includes(t.id)).map((t) => t.label).join(', ') }
+      ]
+    : null;
+  const rows = fromPicks ?? [
     { label: 'Goal', value: state.objective },
     { label: 'Leaning towards', value: state.intent !== 'unclear' ? INTENT_LABELS[state.intent] : '' },
     { label: 'Experience', value: state.experience === 'none' ? 'First time' : state.experience === 'some' ? 'Some experience' : state.experience === 'experienced' ? 'Experienced' : '' },
@@ -260,7 +308,7 @@ function UnderstoodCard({ state }: { state: JourneyState }) {
         {rows.map((r) => (
           <div key={r.label}>
             <dt className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">{r.label}</dt>
-            <dd className={cx('mt-0.5 text-[13px] leading-snug', r.value ? 'text-ink' : 'text-ink-faint')}>{r.value || '—'}</dd>
+            <dd key={r.value || 'empty'} className={cx('mt-0.5 text-[13px] leading-snug', r.value ? 'animate-fade-up text-ink' : 'text-ink-faint')}>{r.value || '—'}</dd>
           </div>
         ))}
       </dl>
