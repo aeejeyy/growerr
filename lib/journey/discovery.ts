@@ -71,17 +71,25 @@ function staticFocus(text: string, intent: Intent): ExperienceId[] {
   return out.slice(0, 3);
 }
 
+const Q_INTENT = 'Are you mostly curious about investing for the longer term, about how trading works, or about finding your way around a brokerage app?';
+const Q_EXPERIENCE = 'Have you invested or traded before, even a little — or would this be your first time?';
+const Q_CONCERNS = 'Is there anything that worries you about getting started — for example losing money, or not knowing the terms?';
+
 function staticFollowUp(state: JourneyState, analysis: DiscoveryAnalysis): string {
-  if (analysis.intent === 'unclear') return 'Are you mostly curious about investing for the longer term, about how trading works, or about finding your way around a brokerage app?';
-  if (analysis.experience === 'unknown' && state.experience === 'unknown') return 'Have you invested or traded before, even a little — or would this be your first time?';
-  if (analysis.concerns.length === 0 && state.concerns.length === 0) return 'Is there anything that worries you about getting started — for example losing money, or not knowing the terms?';
+  // Never ask the same question twice — "not sure" is a complete answer.
+  const asked = new Set(state.messages.filter((m) => m.role === 'guide').map((m) => m.text));
+  if (analysis.intent === 'unclear' && !asked.has(Q_INTENT)) return Q_INTENT;
+  if (analysis.experience === 'unknown' && state.experience === 'unknown' && !asked.has(Q_EXPERIENCE)) return Q_EXPERIENCE;
+  if (analysis.concerns.length === 0 && state.concerns.length === 0 && !asked.has(Q_CONCERNS)) return Q_CONCERNS;
   return '';
 }
 
 export function staticDiscovery(message: string, state: JourneyState): DiscoveryAnalysis {
   const text = message.trim();
   const intent = detectIntent(text);
-  const resolvedIntent = intent === 'unclear' ? state.intent : intent;
+  const alreadyAskedIntent = state.messages.some((m) => m.role === 'guide' && m.text === Q_INTENT);
+  // If they still aren't sure after we asked, start gently with exploring rather than looping.
+  const resolvedIntent = intent !== 'unclear' ? intent : state.intent !== 'unclear' ? state.intent : alreadyAskedIntent ? 'exploring' : 'unclear';
   const signals: DiscoveryAnalysis['signals'] = [];
   for (const rule of SIGNAL_RULES) {
     const know = rule.know.exec(text);

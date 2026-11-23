@@ -12,12 +12,12 @@ import type { Dimension, KnowledgeState, Profile, ProfileEntry } from './types';
 export const DIMENSIONS: Dimension[] = ['fundamentals', 'products', 'risk', 'tradingMechanics', 'platform', 'decisions'];
 
 export const DIMENSION_LABELS: Record<Dimension, string> = {
-  fundamentals: 'Investment fundamentals',
+  fundamentals: 'Investing basics',
   products: 'Financial products',
   risk: 'Risk & volatility',
   tradingMechanics: 'Trading mechanics',
-  platform: 'Brokerage app familiarity',
-  decisions: 'Financial decision concepts'
+  platform: 'Using a broker app',
+  decisions: 'Decision-making'
 };
 
 export const STATE_LABELS: Record<KnowledgeState, string> = {

@@ -9,8 +9,8 @@ import { Callout, cx } from '../ui';
 
 const VARIANT_LABEL: Record<CheckVariant, { text: string; className: string }> = {
   core: { text: 'Concept check', className: 'bg-canvas text-ink-soft' },
-  alternative: { text: 'Fresh example', className: 'bg-accent-50 text-accent-700' },
-  transfer: { text: 'Apply it to something new', className: 'bg-brand-50 text-brand-800' }
+  alternative: { text: 'Same idea, fresh example', className: 'bg-accent-50 text-accent-700' },
+  transfer: { text: 'Final step · apply it somewhere new', className: 'bg-brand-50 text-brand-800' }
 };
 
 export type CheckResult = { evaluation: Evaluation; decision: AdaptiveDecision };
@@ -82,8 +82,7 @@ export default function CheckCard({
         </span>
         <span className="text-xs font-medium text-ink-muted">
           Question {position.index} of {position.total}
-          <span className="sr-only"> (more questions may be added if a different example would help)</span>
-        </span>
+                  </span>
       </div>
 
       <div className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">

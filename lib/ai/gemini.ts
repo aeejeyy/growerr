@@ -11,7 +11,7 @@
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
-const MAX_MODELS = 5;
+const MAX_MODELS = 6;
 
 let workingModel: string | null = null;
 let discovered: { models: string[]; at: number } | null = null;
@@ -60,14 +60,18 @@ export async function discoverModels(): Promise<string[]> {
 async function candidateModels(): Promise<string[]> {
   const configured = (process.env.GEMINI_MODEL || '').trim();
   const found = await discoverModels();
-  const list = [workingModel, configured, ...found.slice(0, 3), ...FALLBACK_MODELS].filter((m): m is string => Boolean(m));
+  // Alternate full and lite models: when one tier is congested (503), the other often isn't.
+  const full = found.filter((m) => !/lite/.test(m));
+  const lite = found.filter((m) => /lite/.test(m));
+  const interleaved = [full[0], lite[0], full[1], lite[1], full[2]];
+  const list = [workingModel, configured, ...interleaved, ...FALLBACK_MODELS].filter((m): m is string => Boolean(m));
   return [...new Set(list)].slice(0, MAX_MODELS);
 }
 
 /** Keep latency low: these are short classification / grading tasks. */
 function thinkingFor(model: string): Record<string, unknown> | undefined {
   if (/2\.5-flash/.test(model)) return { thinkingBudget: 0 };
-  if (versionOf(model) >= 3) return { thinkingLevel: 'low' };
+  if (versionOf(model) >= 3) return { thinkingLevel: 'minimal' };
   return undefined;
 }
 
@@ -85,7 +89,7 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
   if (!key) throw new AiError('missing_key');
 
   let lastError: AiError = new AiError('api_error');
-  const deadline = Date.now() + (options.timeoutMs ?? 24000);
+  const deadline = Date.now() + (options.timeoutMs ?? 18000);
   const tried: string[] = [];
 
   for (const model of await candidateModels()) {
@@ -115,7 +119,7 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
               { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
             ]
           }),
-          signal: AbortSignal.timeout(Math.min(remaining, 12000)),
+          signal: AbortSignal.timeout(Math.min(remaining, 9000)),
           cache: 'no-store'
         });
       } catch (error) {

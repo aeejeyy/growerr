@@ -12,7 +12,7 @@ export function SiteHeader() {
           <Link href="/#how" className="btn-ghost btn-sm hidden sm:inline-flex">How it works</Link>
           <Link href="/#library" className="btn-ghost btn-sm hidden md:inline-flex">Experiences</Link>
           <Link href="/about" className="btn-ghost btn-sm">About</Link>
-          <Link href="/start" className="btn-primary btn-sm">Start learning</Link>
+          <Link href="/start" className="btn-primary btn-sm">Get started</Link>
         </nav>
       </div>
     </header>
@@ -30,7 +30,7 @@ export function SiteFooter() {
           </p>
         </div>
         <nav aria-label="Footer" className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          <Link href="/start" className="text-ink-soft hover:text-ink">Start learning</Link>
+          <Link href="/start" className="text-ink-soft hover:text-ink">Get started</Link>
           <Link href="/#how" className="text-ink-soft hover:text-ink">How it works</Link>
           <Link href="/#library" className="text-ink-soft hover:text-ink">Experiences</Link>
           <Link href="/about" className="text-ink-soft hover:text-ink">About &amp; safety</Link>

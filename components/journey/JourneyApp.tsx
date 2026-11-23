@@ -14,6 +14,7 @@ import { discover } from '../../lib/journey/client';
 import { clearState, createInitialState, loadState, saveState } from '../../lib/journey/storage';
 import type { ExperienceId, JourneyState } from '../../lib/journey/types';
 import { cx } from '../ui';
+import { INTENT_LABELS } from './labels';
 
 export default function JourneyApp() {
   const [state, setState] = useState<JourneyState | null>(null);
@@ -30,6 +31,12 @@ export default function JourneyApp() {
     setState(initial);
     if (saved && saved.messages.some((m) => m.role === 'user')) setResumed(true);
   }, []);
+
+  useEffect(() => {
+    if (!resumed) return;
+    const t = window.setTimeout(() => setResumed(false), 7000);
+    return () => window.clearTimeout(t);
+  }, [resumed]);
 
   /** Synchronous updater: applies fn to the latest state immediately and persists it. */
   const update = useCallback((fn: (s: JourneyState) => JourneyState) => {
@@ -70,21 +77,22 @@ export default function JourneyApp() {
 
   const sidebar = (
     <div className="space-y-5">
-      {state.plan.length > 0 && (
+      {state.phase === 'discovery' && <UnderstoodCard state={state} />}
+      {state.plan.length > 0 && state.phase === 'experience' && (
         <section aria-labelledby="plan-side-title" className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 id="plan-side-title" className="text-sm font-semibold text-ink">Your plan</h2>
             <span className="text-xs font-medium tabular-nums text-ink-muted">{stats.finished}/{stats.total}</span>
           </div>
           <PlanList state={state} onOpen={open} compact />
-          {state.phase !== 'summary' && stats.finished > 0 && (
+          {stats.finished > 0 && (
             <button type="button" className="btn-ghost btn-sm w-full" onClick={() => { update(goToSummary); setSheet(false); scrollTop(); }}>
-              View learning summary
+              Finish and see my summary
             </button>
           )}
         </section>
       )}
-      <div className={cx(state.plan.length > 0 && 'border-t border-line pt-5')}>
+      <div className={cx((state.phase === 'experience' || state.phase === 'discovery') && 'border-t border-line pt-5')}>
         <ProfilePanel state={state} />
       </div>
       <AdaptationLog state={state} />
@@ -100,11 +108,11 @@ export default function JourneyApp() {
             <Logo />
           </Link>
           {state.plan.length > 0 && (
-            <div className="hidden flex-1 items-center gap-3 sm:flex sm:max-w-xs" aria-label={`Journey ${stats.percent}% complete`}>
+            <div className="hidden flex-1 items-center gap-3 sm:flex sm:max-w-sm" aria-label={`Journey ${stats.percent}% complete`}>
               <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
                 <div className="h-full rounded-full bg-brand-500 transition-all duration-700" style={{ width: `${stats.percent}%` }} />
               </div>
-              <span className="text-xs font-semibold tabular-nums text-ink-muted">{stats.percent}%</span>
+              <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-ink-muted">{stats.finished} of {stats.total} done</span>
             </div>
           )}
           <div className="flex items-center gap-1">
@@ -116,7 +124,7 @@ export default function JourneyApp() {
             )}
             <button type="button" className="btn-ghost btn-sm lg:hidden" onClick={() => setSheet(true)} aria-label="Open your profile and plan">
               {state.plan.length > 0 ? <MapIcon size={15} aria-hidden="true" /> : <UserRound size={15} aria-hidden="true" />}
-              <span className="hidden sm:inline">Profile</span>
+              <span className="text-[13px]">{state.phase === 'experience' ? 'Plan' : 'Profile'}</span>
             </button>
             <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmReset(true)} aria-label="Start over">
               <RotateCcw size={15} aria-hidden="true" />
@@ -229,5 +237,33 @@ export default function JourneyApp() {
         </div>
       )}
     </div>
+  );
+}
+
+function UnderstoodCard({ state }: { state: JourneyState }) {
+  const rows = [
+    { label: 'Goal', value: state.objective },
+    { label: 'Leaning towards', value: state.intent !== 'unclear' ? INTENT_LABELS[state.intent] : '' },
+    { label: 'Experience', value: state.experience === 'none' ? 'First time' : state.experience === 'some' ? 'Some experience' : state.experience === 'experienced' ? 'Experienced' : '' },
+    { label: 'On your mind', value: state.concerns[0] ?? '' }
+  ];
+  const known = rows.filter((r) => r.value);
+  return (
+    <section aria-labelledby="understood-title" className="space-y-3">
+      <div>
+        <h2 id="understood-title" className="text-sm font-semibold text-ink">What I’ve understood</h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
+          {known.length === 0 ? 'This fills in as we talk, so you can see exactly what your plan is based on.' : 'Your plan will be built from this. Correct me any time in the chat.'}
+        </p>
+      </div>
+      <dl className="space-y-2.5">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">{r.label}</dt>
+            <dd className={cx('mt-0.5 text-[13px] leading-snug', r.value ? 'text-ink' : 'text-ink-faint')}>{r.value || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

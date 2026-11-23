@@ -1,19 +1,62 @@
 import Link from 'next/link';
 import {
+  Activity,
   ArrowRight,
   BadgeCheck,
   Ban,
   Check,
+  Clock3,
   FlaskConical,
+  Hourglass,
+  Layers,
   Lock,
   MessageCircle,
   MousePointerClick,
+  PackageCheck,
+  PieChart,
+  Receipt,
   Route,
+  Smartphone,
   Sparkles,
-  Target
+  Target,
+  Zap,
+  type LucideIcon
 } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '../components/site/SiteChrome';
-import { EXPERIENCES, EXPERIENCE_IDS } from '../lib/journey/experiences';
+import StartCta from '../components/site/StartCta';
+import { EXPERIENCES } from '../lib/journey/experiences';
+import type { ExperienceId } from '../lib/journey/types';
+
+const LIBRARY_GROUPS: { title: string; text: string; items: { id: ExperienceId; icon: LucideIcon }[] }[] = [
+  {
+    title: 'Foundations',
+    text: 'What you’d actually own, and how it behaves.',
+    items: [
+      { id: 'EXP-01', icon: PieChart },
+      { id: 'EXP-02', icon: Layers },
+      { id: 'EXP-03', icon: Clock3 },
+      { id: 'EXP-04', icon: Activity }
+    ]
+  },
+  {
+    title: 'Placing orders',
+    text: 'What really happens when you press “Buy”.',
+    items: [
+      { id: 'EXP-05', icon: Zap },
+      { id: 'EXP-06', icon: Target },
+      { id: 'EXP-07', icon: Hourglass },
+      { id: 'EXP-10', icon: PackageCheck }
+    ]
+  },
+  {
+    title: 'Inside a broker app',
+    text: 'The screens and costs you’ll meet first.',
+    items: [
+      { id: 'EXP-08', icon: Smartphone },
+      { id: 'EXP-09', icon: Receipt }
+    ]
+  }
+];
 
 const STEPS = [
   {
@@ -66,9 +109,7 @@ export default function HomePage() {
                 simulations — so you can open a brokerage app knowing what every button means.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link href="/start" className="btn-primary h-12 px-6 text-base">
-                  Start your journey <ArrowRight size={18} aria-hidden="true" />
-                </Link>
+                <StartCta className="btn-primary h-12 px-6 text-base" />
                 <Link href="#how" className="btn-secondary h-12 px-6 text-base">See how it adapts</Link>
               </div>
               <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-muted">
@@ -134,21 +175,35 @@ export default function HomePage() {
               </div>
               <Link href="/start" className="btn-secondary shrink-0">Find my starting point <ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
-            <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {EXPERIENCE_IDS.map((id) => {
-                const exp = EXPERIENCES[id];
-                return (
-                  <li key={id} className="group card p-5 transition hover:-translate-y-0.5 hover:shadow-lift">
-                    <div className="flex items-center justify-between text-xs font-medium text-ink-faint">
-                      <span>{id}</span>
-                      <span>~{exp.minutes} min</span>
-                    </div>
-                    <h3 className="mt-2 text-[16px] font-semibold text-ink">{exp.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-ink-muted">{exp.short}</p>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              {LIBRARY_GROUPS.map((group) => (
+                <section key={group.title} aria-labelledby={`group-${group.title}`} className="rounded-3xl bg-canvas p-3 ring-1 ring-line">
+                  <div className="px-3 pb-3 pt-2">
+                    <h3 id={`group-${group.title}`} className="text-[15px] font-semibold text-ink">{group.title}</h3>
+                    <p className="text-sm text-ink-muted">{group.text}</p>
+                  </div>
+                  <ul className="space-y-2">
+                    {group.items.map(({ id, icon: Icon }) => {
+                      const exp = EXPERIENCES[id];
+                      return (
+                        <li key={id} className="flex items-start gap-3.5 rounded-2xl bg-white p-4 shadow-card ring-1 ring-line/60">
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700" aria-hidden="true">
+                            <Icon size={19} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="text-[15px] font-semibold text-ink">{exp.title}</span>
+                              <span className="shrink-0 text-xs text-ink-faint">{exp.minutes} min</span>
+                            </span>
+                            <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-muted">{exp.short}</span>
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -178,9 +233,7 @@ export default function HomePage() {
             <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-accent/20 blur-3xl" aria-hidden="true" />
             <h2 className="relative text-3xl font-bold tracking-tight text-white sm:text-4xl">Start with one sentence.</h2>
             <p className="relative mx-auto mt-3 max-w-xl text-lg text-white/70">Tell Growerr what you’re trying to understand. It takes it from there.</p>
-            <Link href="/start" className="btn relative mt-8 h-12 bg-brand-500 px-7 text-base text-ink hover:bg-brand-400">
-              Start your journey <ArrowRight size={18} aria-hidden="true" />
-            </Link>
+            <StartCta className="btn relative mt-8 h-12 bg-brand-500 px-7 text-base text-ink hover:bg-brand-400" />
           </div>
         </section>
       </main>

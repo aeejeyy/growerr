@@ -31,6 +31,8 @@ export default function DiscoveryChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const userTurns = state.messages.filter((m) => m.role === 'user').length;
   const canPlan = userTurns > 0 && state.intent !== 'unclear';
+  const last = state.messages[state.messages.length - 1];
+  const awaitingAnswer = userTurns > 0 && last?.role === 'guide' && last.text.trim().endsWith('?');
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -144,6 +146,15 @@ export default function DiscoveryChat({
       </div>
 
       <form onSubmit={onSubmit} className="border-t border-line bg-white px-4 py-3 sm:px-6 sm:py-4">
+        {awaitingAnswer && !busy && (
+          <div className="mb-2.5 flex flex-wrap gap-1.5" aria-label="Quick replies">
+            {['Not sure', 'I’d rather not say'].map((q) => (
+              <button key={q} type="button" className="min-h-[32px] rounded-full border border-line-strong bg-white px-3 text-[13px] font-medium text-ink-soft transition hover:border-brand-300 hover:text-ink" onClick={() => submit(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {warning && (
           <p role="alert" className="mb-2 flex items-start gap-2 rounded-lg bg-loss-50 px-3 py-2 text-sm text-loss-700">
             <ShieldCheck size={16} className="mt-0.5 shrink-0" aria-hidden="true" /> {warning}

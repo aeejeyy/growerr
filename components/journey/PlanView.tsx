@@ -7,7 +7,7 @@ import type { ExperienceId, JourneyState, PlanItem } from '../../lib/journey/typ
 import { cx } from '../ui';
 
 const STATUS: Record<PlanItem['status'], { label: string; className: string; icon: React.ReactNode }> = {
-  pending: { label: 'Up next', className: 'bg-canvas text-ink-soft', icon: null },
+  pending: { label: 'Up next', className: 'bg-brand-50 text-brand-800', icon: null },
   active: { label: 'In progress', className: 'bg-accent-50 text-accent-700', icon: null },
   demonstrated: { label: 'Demonstrated', className: 'bg-brand-50 text-brand-800', icon: <Check size={11} strokeWidth={3} /> },
   'needs-review': { label: 'Revisit', className: 'bg-warn-50 text-warn-700', icon: <RotateCcw size={11} /> },
@@ -23,12 +23,15 @@ export function PlanList({
   onOpen?: (id: ExperienceId) => void;
   compact?: boolean;
 }) {
+  const firstPending = state.plan.some((p) => p.status === 'active') ? null : state.plan.find((p) => p.status === 'pending')?.id;
   return (
     <ol className="space-y-2">
       {state.plan.map((item, i) => {
         const exp = EXPERIENCES[item.id];
         const status = STATUS[item.status];
         const current = state.currentId === item.id;
+        // Only label pending items that matter: the next one to start.
+        const label = item.status === 'pending' ? (item.id === firstPending ? 'Start here' : '') : current && item.status === 'active' ? 'Now' : status.label;
         return (
           <li key={item.id}>
             <button
@@ -62,19 +65,21 @@ export function PlanList({
                   )}
                 </span>
                 {!compact && <span className="mt-0.5 block text-sm leading-snug text-ink-muted">{item.reason}</span>}
-                {compact && (
+                {compact && label && (
                   <span className={cx('chip mt-1 px-2 py-0.5 text-[10px]', status.className)}>
                     {status.icon}
-                    {current && item.status === 'active' ? 'Now' : status.label}
+                    {label}
                   </span>
                 )}
               </span>
               {!compact && (
                 <span className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className={cx('chip text-[11px]', status.className)}>
-                    {status.icon}
-                    {status.label}
-                  </span>
+                  {label && (
+                    <span className={cx('chip text-[11px]', status.className)}>
+                      {status.icon}
+                      {label}
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1 text-xs text-ink-faint">
                     <Clock size={11} aria-hidden="true" />~{exp.minutes}m
                   </span>
