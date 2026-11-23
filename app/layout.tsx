@@ -4,8 +4,8 @@ import Link from 'next/link';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Growerr — a clearer first step into investing',
-  description: 'Six simple questions turn into a personal starting point, with an optional educational guide. Independent, private, and free.'
+  title: 'Growerr — a calmer way to learn investing',
+  description: 'Tell Growerr what you want to understand, then explore short hypothetical scenarios that adapt as you learn. Independent, browser-only and free.'
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </span>
                 Growerr
               </Link>
-              <p>A clearer first step into investing.</p>
+              <p>A calmer way to learn investing basics.</p>
             </div>
             <nav className="footer-links" aria-label="Footer navigation">
               <Link href="/#how">How it works</Link>
@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               Growerr is an independent educational tool. It is not affiliated with Groww and does not provide investment advice.
               Groww is a separate platform with its own terms and privacy policy.
             </p>
-            <p className="footer-meta">© 2026 Growerr · Answers stay in your browser.</p>
+            <p className="footer-meta">© 2026 Growerr · Your learning journey stays in your browser.</p>
           </div>
         </footer>
       </body>

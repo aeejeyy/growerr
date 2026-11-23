@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import {
   ArrowRight,
+  BookOpen,
   Check,
   Clock,
   ExternalLink,
   Lock,
   MessageCircle,
-  Pencil,
   Sparkles,
-  Sprout,
-  Target,
-  TrendingUp
+  Sprout
 } from 'lucide-react';
 
 export default function Home() {
@@ -18,14 +16,14 @@ export default function Home() {
     <div className="home">
       <section className="hero-wrap">
         <div className="hero-copy">
-          <span className="pill"><span className="pill-dot" aria-hidden="true" /> Independent · Free · About 2 minutes</span>
-          <h1>Investing makes more sense when it starts with <em>you</em>.</h1>
+          <span className="pill"><span className="pill-dot" aria-hidden="true" /> Independent · Free · Browser-only</span>
+          <h1>Investing makes more sense when you learn by <em>doing</em>.</h1>
           <p className="lead">
-            Answer six simple questions. Growerr turns them into a clear starting point you can take to Groww — no jargon, no pressure.
+            Tell Growerr what you are trying to understand. Short, hypothetical scenarios adapt to what you know — no jargon, no pressure, no account.
           </p>
           <div className="actions">
             <Link href="/start" className="button primary button-large">
-              Find my starting point <ArrowRight size={18} aria-hidden="true" />
+              Start my journey <ArrowRight size={18} aria-hidden="true" />
             </Link>
             <Link href="/coach" className="button ghost">
               Ask the guide <MessageCircle size={17} aria-hidden="true" />
@@ -34,49 +32,49 @@ export default function Home() {
           </div>
           <ul className="trust-list">
             <li><Lock size={15} aria-hidden="true" /> No account or email</li>
-            <li><Check size={15} aria-hidden="true" /> Onboarding answers stay in your browser</li>
-            <li><Clock size={15} aria-hidden="true" /> Takes about 2 minutes</li>
+            <li><Check size={15} aria-hidden="true" /> Your journey stays in your browser</li>
+            <li><Clock size={15} aria-hidden="true" /> Pause, skip or revisit anytime</li>
           </ul>
           <p className="hero-coach-note">
-            Want to talk it through first? The educational guide asks one question at a time and never recommends a product.
+            Want to talk it through first? The separate educational guide asks one question at a time and never recommends a product.
           </p>
         </div>
 
         <div className="hero-visual-wrap">
           <p className="sr-only">
-            Preview of Growerr onboarding: a simple question, “What brings you to investing?”, with clear answer cards such as “Grow my money”.
+            Preview of Growerr: a conversation about what you want to understand, followed by short hypothetical scenarios that adapt as you go.
           </p>
           <div className="hero-visual" aria-hidden="true">
             <div className="hero-glow" />
             <div className="phone-card">
               <div className="phone-top">
                 <span className="phone-brand"><Sprout size={16} /> Growerr</span>
-                <span className="phone-step">3 of 6</span>
+                <span className="phone-step">Adaptive path</span>
               </div>
               <div className="mini-progress"><span /></div>
-              <p className="mini-eyebrow">Your reason</p>
-              <p className="mini-question">What brings you to investing?</p>
+              <p className="mini-eyebrow">In your words</p>
+              <p className="mini-question">“I want to understand shares and funds.”</p>
               <div className="mini-option is-picked">
-                <span className="mini-icon"><TrendingUp size={17} /></span>
-                <span><strong>Grow my money</strong><small>Over time, with room to learn.</small></span>
+                <span className="mini-icon"><MessageCircle size={17} /></span>
+                <span><strong>What I heard</strong><small>You are comparing two structures.</small></span>
                 <span className="mini-check"><Check size={13} /></span>
               </div>
               <div className="mini-option">
-                <span className="mini-icon"><Target size={17} /></span>
-                <span><strong>Save for a goal</strong><small>A trip, a course, a home.</small></span>
+                <span className="mini-icon"><BookOpen size={17} /></span>
+                <span><strong>Next scenario</strong><small>Two ways to hold something.</small></span>
               </div>
               <div className="mini-option">
-                <span className="mini-icon"><Sprout size={17} /></span>
-                <span><strong>Learn by doing</strong><small>Understand before going bigger.</small></span>
+                <span className="mini-icon"><Sparkles size={17} /></span>
+                <span><strong>Adapts as you go</strong><small>Wrong answers change the path.</small></span>
               </div>
               <div className="mini-footer">
-                <span>Step 3 of 6</span>
-                <span className="mini-button">Continue <ArrowRight size={13} /></span>
+                <span>Hypothetical examples</span>
+                <span className="mini-button">Start <ArrowRight size={13} /></span>
               </div>
             </div>
             <div className="float-card">
-              <span className="float-icon"><Sparkles size={17} /></span>
-              <span><strong>Made for beginners</strong><small>Plain language, no jargon.</small></span>
+              <span className="float-icon"><Lock size={17} /></span>
+              <span><strong>Private by design</strong><small>Saved only in this browser.</small></span>
             </div>
           </div>
         </div>
@@ -86,23 +84,23 @@ export default function Home() {
         <div className="section-heading">
           <span className="eyebrow">How it works</span>
           <h2>Three small steps. No pressure.</h2>
-          <p>You do not need to know the difference between a mutual fund and an index fund to begin. That is the point.</p>
+          <p>You do not need to know the difference between a share and a fund before you begin. That is what the journey is for.</p>
         </div>
         <div className="how-grid">
           <article className="how-card">
             <div className="how-top"><span className="how-icon"><MessageCircle size={20} aria-hidden="true" /></span><span className="how-number">01</span></div>
-            <h3>Tell us about you</h3>
-            <p>Six one-question screens about your reason, timeline, comfort with risk, experience and what matters most.</p>
+            <h3>Tell me in your words</h3>
+            <p>One short, optional question at a time. “Not sure”, “Skip” and “Prefer not to say” are all fine.</p>
           </article>
           <article className="how-card">
-            <div className="how-top"><span className="how-icon"><Sparkles size={20} aria-hidden="true" /></span><span className="how-number">02</span></div>
-            <h3>See your starting point</h3>
-            <p>A plain-language summary of your answers, plus a few educational topics worth exploring first.</p>
+            <div className="how-top"><span className="how-icon"><BookOpen size={20} aria-hidden="true" /></span><span className="how-number">02</span></div>
+            <h3>Try a short scenario</h3>
+            <p>Make choices, set an invented condition, or explain an idea. Every number is imaginary and labelled as such.</p>
           </article>
           <article className="how-card">
-            <div className="how-top"><span className="how-icon"><ExternalLink size={20} aria-hidden="true" /></span><span className="how-number">03</span></div>
-            <h3>Continue on Groww</h3>
-            <p>When you are ready, open Groww to explore account options and beginner guides at your own pace.</p>
+            <div className="how-top"><span className="how-icon"><Sparkles size={20} aria-hidden="true" /></span><span className="how-number">03</span></div>
+            <h3>See what you explored</h3>
+            <p>Get a learning summary: concepts demonstrated, ideas worth another look, and official education sources.</p>
           </article>
         </div>
       </section>
@@ -110,31 +108,29 @@ export default function Home() {
       <section className="section">
         <div className="benefits-panel">
           <div className="benefits-copy">
-            <span className="eyebrow">Built to be simple</span>
+            <span className="eyebrow">Built to be calm</span>
             <h2>Less jargon. More clarity.</h2>
-            <p>Most investing products ask you to know the answers before you start. Growerr starts with what you already know.</p>
+            <p>Most investing tools ask you to know the answers before you start. Growerr begins with what you want to understand and checks it with invented examples.</p>
             <ul className="benefit-list">
               <li><span><Check size={15} aria-hidden="true" /></span><div><strong>One question at a time</strong><small>No long forms, no timers, no pressure.</small></div></li>
-              <li><span><Pencil size={15} aria-hidden="true" /></span><div><strong>Change any answer</strong><small>Go back or edit from the summary whenever you like.</small></div></li>
-              <li><span><Lock size={15} aria-hidden="true" /></span><div><strong>Nothing leaves your browser</strong><small>No account, no email, and no answers sent to Groww.</small></div></li>
+              <li><span><BookOpen size={15} aria-hidden="true" /></span><div><strong>A wrong answer helps</strong><small>It changes the explanation and the next learning step.</small></div></li>
+              <li><span><Lock size={15} aria-hidden="true" /></span><div><strong>Your journey stays local</strong><small>No account, no email, and no answers sent to Groww.</small></div></li>
             </ul>
           </div>
 
           <div className="summary-mock" aria-hidden="true">
             <div className="summary-mock-top">
-              <span className="kicker"><Sparkles size={14} /> Your starting point</span>
+              <span className="kicker"><Sparkles size={14} /> Your learning summary</span>
               <span className="mock-badge">Private</span>
             </div>
-            <div className="mock-row"><span>Your reason</span><strong>Learn by doing</strong></div>
-            <div className="mock-row"><span>Your timeline</span><strong>7 years or more</strong></div>
-            <div className="mock-row"><span>What matters most</span><strong>Understanding as I go</strong></div>
+            <div className="mock-row"><span>Starting objective</span><strong>Shares vs funds</strong></div>
+            <div className="mock-row"><span>Journey completed</span><strong>3 of 3 explored</strong></div>
+            <div className="mock-row"><span>Concepts demonstrated</span><strong>2</strong></div>
             <div className="mock-topics">
-              <span>Explore first</span>
-              <p>Investing basics</p>
-              <p>How index funds work</p>
-              <p>Risk and diversification</p>
+              <span>Worth another look</span>
+              <p>Risk and volatility</p>
             </div>
-            <div className="mock-cta">Continue to Groww <ExternalLink size={14} /></div>
+            <div className="mock-cta">Optional: open groww.in <ExternalLink size={14} /></div>
           </div>
         </div>
       </section>
@@ -144,10 +140,10 @@ export default function Home() {
           <div>
             <span className="eyebrow eyebrow-light">Ready when you are</span>
             <h2>Your first step can be a small one.</h2>
-            <p>Six questions, about two minutes, and a starting point you can actually use.</p>
+            <p>One conversation, three short scenarios, and a summary you can keep.</p>
           </div>
           <Link href="/start" className="button light button-large">
-            Find my starting point <ArrowRight size={18} aria-hidden="true" />
+            Start my journey <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </div>
       </section>

@@ -42,6 +42,11 @@ const sebiIndex = {
   url: 'https://investor.sebi.gov.in/ssis/'
 } as const;
 
+const sebiSecondaryMarket = {
+  name: 'SEBI — Module 5, Chapter 18: Buying Shares Directly',
+  url: 'https://investor.sebi.gov.in/ssis/investing-directly-02.html'
+} as const;
+
 const mfSahiHai = {
   name: 'Mutual Funds Sahi Hai (AMFI)',
   url: 'https://www.mutualfundssahihai.com/en'
@@ -120,6 +125,57 @@ export const educationItems: EducationItem[] = [
     title: 'Market entry and accounts',
     text: 'SEBI’s learning path has a module on what shares, bonds and fund units are, who regulates the market, and the accounts and KYC involved. This is general orientation, not an account-opening service.',
     keywords: ['demat', 'account', 'kyc', 'broker', 'start', 'enter', 'buy'],
+    source: {
+      name: 'SEBI — Module 3: Understanding & Preparing to Enter the Market',
+      url: 'https://investor.sebi.gov.in/ssis/entering-the-market.html'
+    }
+  },
+  {
+    id: 'direct-shares',
+    title: 'Direct share ownership',
+    text: 'An equity share represents part ownership in a company. In the secondary market, shares already in existence change hands between investors; the company is not receiving the money in that transaction. Holding securities directly involves more judgement and record-keeping than holding them through a fund.',
+    keywords: ['share', 'stock', 'equity', 'ownership', 'direct', 'secondary market', 'company'],
+    source: sebiSecondaryMarket
+  },
+  {
+    id: 'pooled-fund',
+    title: 'Pooled mutual fund units',
+    text: 'A mutual fund collects money from many investors and invests the pool in a portfolio of securities. An investor holds units of the scheme in proportion to the amount invested. Diversification inside a fund can reduce company-specific risk, but it does not remove market-wide risk.',
+    keywords: ['mutual fund', 'pool', 'unit', 'nav', 'diversif', 'many companies'],
+    source: {
+      name: 'SEBI — Module 4, Chapter 14: Mutual Funds: What They Are and How They Work',
+      url: 'https://investor.sebi.gov.in/ssis/investing-through-mutual-funds-01.html'
+    }
+  },
+  {
+    id: 'volatility-risk',
+    title: 'Volatility and risk',
+    text: 'Risk is the possibility that an actual return differs from an expected return, including the possibility of losing capital. Volatility describes price movement in both directions. Diversification can reduce company-specific risk, but not risk that affects the whole market.',
+    keywords: ['volatility', 'volatile', 'risk', 'fall', 'loss', 'up and down', 'diversif', 'market movement'],
+    source: {
+      name: 'SEBI — Module 2, Chapter 7: Risk and Return',
+      url: 'https://investor.sebi.gov.in/ssis/from-money-to-a-plan-02.html'
+    }
+  },
+  {
+    id: 'order-mechanics',
+    title: 'Order mechanics',
+    text: 'An order sent through a broker specifies the security, quantity and a price condition. A market order seeks execution at the best available price; a limit order carries a price condition. Exchange matching uses price and time priority. These are mechanics, not a statement about what to buy.',
+    keywords: ['market order', 'limit order', 'order', 'execute', 'price condition', 'bid', 'ask', 'broker'],
+    source: sebiSecondaryMarket
+  },
+  {
+    id: 'investing-trading',
+    title: 'Investing and trading are different activities',
+    text: 'Investing and trading describe different objectives and time commitments. Investing is usually framed around business performance over years; trading focuses on shorter-term price movements. The distinction explains vocabulary and workflow; it is not an endorsement of either activity.',
+    keywords: ['investing vs trading', 'trading', 'intraday', 'holding period', 'objective', 'time horizon'],
+    source: sebiSecondaryMarket
+  },
+  {
+    id: 'brokerage-flow',
+    title: 'Where a brokerage app fits',
+    text: 'A brokerage app is one route for placing an instruction that is routed to an exchange. Trade matching, clearing and settlement are separate steps. Growerr has no connection to any broker or account system and only explains the workflow in general terms.',
+    keywords: ['brokerage app', 'watchlist', 'holdings', 'orders', 'funds', 'demat', 'settlement', 'exchange'],
     source: {
       name: 'SEBI — Module 3: Understanding & Preparing to Enter the Market',
       url: 'https://investor.sebi.gov.in/ssis/entering-the-market.html'
@@ -277,15 +333,19 @@ export function isAdviceRequest(text: string): boolean {
   return ADVICE_REQUEST_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-function safeEcho(text: string): string {
+export function safeEcho(text: string, maxLength = 140): string {
   const cleaned = text
     .replace(/https?:\/\/\S+|www\.\S+/gi, '[link removed]')
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[email removed]')
+    .replace(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/g, '[id removed]')
+    .replace(/\b\d{4}\s?\d{4}\s?\d{4}\b/g, '[id removed]')
     .replace(/\b\d{5,}\b/g, '[number removed]')
+    .replace(/\b(?:ignore|disregard|forget)\b.{0,50}\b(?:instructions?|rules?|prompt)\b/gi, '[instruction removed]')
+    .replace(/\b(?:you are now|act as|pretend to be|system prompt)\b/gi, '[instruction removed]')
     .replace(/\s+/g, ' ')
     .trim();
 
-  return cleaned.length > 140 ? `${cleaned.slice(0, 140).trimEnd()}…` : cleaned;
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength).trimEnd()}…` : cleaned;
 }
 
 function explanationsFor(text: string): CoachExplanation[] {

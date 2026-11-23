@@ -1,103 +1,114 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import PrivacyActions from '../../components/PrivacyActions';
-import { GROWW_URL } from '../../lib/onboarding';
+import { GROWW_URL, JOURNEY_STORAGE_KEY } from '../../lib/constants';
 
 export const metadata: Metadata = {
   title: 'Privacy & independence — Growerr',
-  description: 'What Growerr asks, where your answers live, and why it is independent from Groww.'
+  description: 'How Growerr keeps your adaptive learning journey in the browser, when AI is used, and why it is independent from Groww.'
 };
 
-const questionNotes = [
-  ['Your reason', 'To suggest a useful place to begin.'],
-  ['Your timeline', 'To separate short-term savings from long-term investing.'],
-  ['When markets dip', 'To reflect how much movement you may be comfortable with.'],
-  ['Starting amount', 'To keep the suggested topics realistic. You can skip it.'],
-  ['Your experience', 'To choose simpler or more detailed language.'],
-  ['What matters most', 'To pick three educational topics worth exploring first.']
+const journeyNotes = [
+  ['Your own words', 'To find the learning objective you actually stated, not to judge your circumstances.'],
+  ['One short clarification', 'To resolve an ambiguous goal only when more than one path could help.'],
+  ['Scenario answers', 'To see which concepts you can explain and where another explanation may help.'],
+  ['Progress and review flags', 'To choose the next scenario, revisit an idea, or stop when the journey is complete.']
 ];
 
 export default function AboutPage() {
   return (
     <div className="page narrow article about-page">
       <span className="eyebrow">Privacy &amp; independence</span>
-      <h1>A simple starting point, with no strings.</h1>
+      <h1>A private learning journey, with no strings.</h1>
       <p className="lead">
-        Growerr is a free, independent onboarding tool. It asks six plain-language questions, shows you a summary,
-        and then lets you continue to Groww when you are ready.
+        Growerr is a free, independent educational tool. You begin in your own words, work through short hypothetical
+        scenarios, and get a learning summary. There is no account and no product recommendation.
       </p>
 
       <div className="about-callout">
         <div><strong>Independent</strong><span>Not affiliated with Groww.</span></div>
-        <div><strong>Onboarding is browser-only</strong><span>Your six answers never reach a server.</span></div>
-        <div><strong>Not advice</strong><span>Education, not a recommendation.</span></div>
+        <div><strong>Journey is browser-only</strong><span>Your profile, progress and summary stay in this browser.</span></div>
+        <div><strong>Not advice</strong><span>Education, not a suitability score.</span></div>
       </div>
 
       <h2>What Growerr is</h2>
       <p>
-        A short, calm way to turn what you already know about yourself into a clearer starting point. It is not a broker,
-        an investment adviser, or a place to buy financial products. It does not open an account, execute trades, or
-        collect contact details.
+        A calm way to explore investing and market concepts. It reflects what you say, asks one short optional question
+        at a time, then uses interactive scenarios to check understanding. It is not a broker, an investment adviser, or
+        a place to buy financial products. It does not open an account, place an order, or collect contact details.
       </p>
 
-      <h2>What we ask — and why</h2>
+      <h2>What you share — and why</h2>
       <div className="question-notes">
-        {questionNotes.map(([label, reason]) => (
+        {journeyNotes.map(([label, reason]) => (
           <div key={label}><strong>{label}</strong><span>{reason}</span></div>
         ))}
       </div>
-
-      <h2>What we never ask for</h2>
       <p>
-        No name, email address, phone number, PAN, Aadhaar, bank details, broker login, holdings, or income details.
-        There is no Growerr account and no mailing list. The starting amount is a broad range and is optional.
+        You can answer “Not sure”, “Skip”, or “Prefer not to say” at any discovery step. You can also pause, skip a
+        scenario, revisit it later, or start again. A wrong answer only changes the explanation and the next learning
+        step; it never becomes a score about you.
       </p>
 
-      <h2>Where your answers live</h2>
+      <h2>What we never ask for or infer</h2>
       <p>
-        Your answers are stored in this browser&apos;s local storage so you can come back to your starting point. They are
-        not sent to Growerr, Groww, or anyone else. Another browser or device cannot see them. Clearing this browser&apos;s
-        data may remove them, and Groww never receives a copy.
+        No name, email address, phone number, PAN, Aadhaar, bank or card details, OTPs, passwords, broker login, exact
+        holdings, income, age, account status, financial readiness, or risk tolerance. Brief answers are not used to
+        infer any of those things. If you paste private details, the browser blocks obvious ones before they are sent,
+        the text is not used, and you are asked not to repeat it.
+      </p>
+
+      <h2>Where your journey lives</h2>
+      <p>
+        Your discovery conversation, learner profile, scenario progress, review flags and summary are saved under the
+        versioned key <code>{JOURNEY_STORAGE_KEY}</code> in this browser&apos;s local storage so you can resume. They are
+        not stored by Growerr on a server, are not sent to Groww, and are not visible from another browser or device.
+        Clearing this browser&apos;s data removes them.
       </p>
       <PrivacyActions />
 
-      <h2>The optional educational guide</h2>
+      <h2>When AI is used</h2>
       <p>
-        The <Link href="/coach">Guide</Link> is separate from onboarding. It never receives your six onboarding answers. When
-        you send a message, that message and the last few turns are posted to Growerr&apos;s coach API. If the AI service
-        is configured, they are passed to Gemini to produce that reply; Growerr requests no provider-side storage for
-        later retrieval. The conversation is not saved in local storage or by Growerr after you leave the page.
+        Discovery replies and own-words scenario checks are posted to Growerr&apos;s journey API. If the AI service is
+        configured, those specific messages and a short recent conversation window are sent to Gemini to produce a
+        structured reply; the request asks for no provider-side storage for later retrieval. Your profile, progress,
+        summary and saved browser data are not sent to the AI provider.
       </p>
       <p>
-        If the AI service is not configured, fails, or returns something that cannot be checked against the approved
-        education notes, the page shows a clearly labelled built-in educational reply instead. It never pretends a model
-        response succeeded. The guide uses a fixed set of SEBI and AMFI education notes, does not browse live product
-        pages, and does not claim access to prices, fees, holdings, accounts or broker systems.
+        If the service is missing, fails, or returns something unsafe or invalid, the page says so and uses a clearly
+        labelled built-in educational path. It never invents a model response. Model output is checked against fixed
+        schemas, approved education notes and approved scenario IDs; generated code is never executed.
       </p>
       <p>
-        The guide is for general education only. It does not recommend or rank products, give buy/sell/hold calls,
-        estimate returns, or tell you what is suitable for you. For advice about your own situation, speak to a
-        SEBI-registered Investment Adviser. Do not paste PAN, Aadhaar, bank or card numbers, OTPs, passwords, or exact
-        holdings; the guide clears obvious private details locally before they are sent and asks you not to repeat
-        them.
+        The <Link href="/coach">Guide</Link> is a separate optional Q&amp;A page. It does not receive your journey
+        profile or summary. It uses the same fixed SEBI and AMFI education notes and the same honest static fallback.
+      </p>
+
+      <h2>Limits of the journey</h2>
+      <p>
+        All prices and paths in scenarios are invented for learning and are labelled hypothetical. They are not live
+        market data, predictions, or returns. Growerr does not recommend, rank or compare securities, funds, ETFs or
+        allocations, and it gives no buy, sell or hold calls, suitability labels, forecasts or guarantees. If you ask
+        for personalised advice, it explains the boundary, names neutral factors to discuss, and points you to a
+        SEBI-registered Investment Adviser.
       </p>
 
       <h2>Independence</h2>
       <p>
         Growerr is an independent educational project. It is not owned by, operated by, endorsed by, or affiliated with
-        Groww. The “Continue to Groww” link opens <a href={GROWW_URL} target="_blank" rel="noopener noreferrer">groww.in</a> in a
-        new tab. Groww is a separate platform with its own terms of use and privacy policy. Growerr does not earn a
-        commission from that link.
+        Groww. The optional link opens <a href={GROWW_URL} target="_blank" rel="noopener noreferrer">groww.in</a> in a
+        new tab. Groww is a separate platform with its own terms and privacy policy. Growerr does not earn a commission
+        from that link and does not transfer answers or open accounts.
       </p>
 
       <h2>Not investment advice</h2>
       <p>
-        The summary and suggested topics are educational. They are not a recommendation to buy, sell, or hold any
-        product, and they do not promise a return. Investments can fall as well as rise, and you may get back less than
-        you put in. For personal advice, speak to a qualified professional who is registered to give it.
+        The journey, summary and explanations are general education. Investments can fall as well as rise, and you may
+        get back less than you put in. For advice about your own situation, speak to a SEBI-registered Investment
+        Adviser.
       </p>
 
-      <p className="fine-print">Last updated 22 November 2026.</p>
+      <p className="fine-print">Last updated 23 November 2026.</p>
     </div>
   );
 }

@@ -1,15 +1,15 @@
 import type { Metadata } from 'next';
-import Onboarding from '../../components/Onboarding';
+import Journey from '../../components/Journey';
 
 export const metadata: Metadata = {
-  title: 'Find your starting point — Growerr',
-  description: 'Six simple questions about your goals, timeline and comfort with risk, turned into a clear starting point for investing.'
+  title: 'Start your journey — Growerr',
+  description: 'Tell Growerr what you are trying to understand, then learn through short hypothetical scenarios that adapt as you go.'
 };
 
 export default function StartPage() {
   return (
-    <div className="page onboarding-page">
-      <Onboarding />
+    <div className="page journey-page">
+      <Journey />
     </div>
   );
 }

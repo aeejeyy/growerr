@@ -19,7 +19,7 @@ import {
   type CoachReply,
   type CoachTurn
 } from '../lib/education';
-import { GROWW_URL } from '../lib/onboarding';
+import { GROWW_URL } from '../lib/constants';
 
 type Message =
   | { id: number; role: 'user'; text: string }
@@ -275,8 +275,8 @@ export default function Coach() {
             <h2>What gets sent</h2>
             <p>
               Each message and the last few turns go to Growerr&apos;s coach API. If the AI guide is configured, they
-              are then sent to the AI provider for that reply. Your six onboarding answers are never included, and the
-              conversation is not saved after you leave the page.
+              are then sent to the AI provider for that reply. Your journey profile, progress and summary are never
+              included, and the conversation is not saved after you leave the page.
             </p>
             <p className="caption">Never paste PAN, Aadhaar, bank or card numbers, OTPs, passwords, or exact holdings.</p>
           </section>
@@ -307,7 +307,7 @@ export default function Coach() {
           </section>
 
           <Link href="/start" className="aside-link">
-            Or take the six-question starting point <ArrowRight size={15} aria-hidden="true" />
+            Or start the adaptive journey <ArrowRight size={15} aria-hidden="true" />
           </Link>
         </aside>
       </div>
