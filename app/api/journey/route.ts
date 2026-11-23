@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const reason = error instanceof AiError ? error.code : 'api_error';
       if (error instanceof AiError) console.error('discovery ai fallback:', error.message);
-      return json({ mode: 'static', reason, analysis: staticDiscovery(message, state) });
+      return json({ mode: 'static', reason, detail: error instanceof Error ? error.message.slice(0, 600) : undefined, analysis: staticDiscovery(message, state) });
     }
   }
 
