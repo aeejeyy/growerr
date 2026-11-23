@@ -1,15 +1,11 @@
 import type { Metadata } from 'next';
-import Journey from '../../components/Journey';
+import JourneyApp from '../../components/journey/JourneyApp';
 
 export const metadata: Metadata = {
-  title: 'Start your journey — Growerr',
-  description: 'Tell Growerr what you are trying to understand, then learn through short hypothetical scenarios that adapt as you go.'
+  title: 'Your journey — Growerr',
+  description: 'Tell Growerr what you want to understand, then learn through interactive simulations that adapt to what you show.'
 };
 
 export default function StartPage() {
-  return (
-    <div className="page journey-page">
-      <Journey />
-    </div>
-  );
+  return <JourneyApp />;
 }

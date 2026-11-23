@@ -1,137 +1,106 @@
-import { educationItems, safeEcho } from '../education';
-import { journeyProgress } from './engine';
-import { unresolvedMisconceptions } from './profile';
-import { getScenario } from './scenarios';
-import type { JourneyState, KnowledgeDimension } from './types';
+/**
+ * Learning summary & broker handoff content (Module 6).
+ */
+import { educationItems } from '../education';
+import { EXPERIENCES, MISCONCEPTIONS, allChecks, getExperience } from './experiences';
+import { journeyStats } from './engine';
+import { DIMENSIONS, DIMENSION_LABELS, STATE_LABELS, resolvedMisconceptions, unresolvedMisconceptions } from './profile';
+import type { ExperienceId, JourneyState } from './types';
 
-const INTENT_LABELS: Record<string, string> = {
-  investing: 'Investing',
-  trading: 'Trading mechanics',
-  exploring: 'Exploring',
-  platform: 'Brokerage app familiarity',
-  unclear: 'Still open'
+const PLATFORM_WORKFLOW: Partial<Record<ExperienceId, string>> = {
+  'EXP-05': 'Placed a simulated market order and watched it fill across price levels',
+  'EXP-06': 'Set a simulated limit price and saw when it does and doesn’t execute',
+  'EXP-07': 'Placed simulated orders against busy and thin order books',
+  'EXP-08': 'Toured watchlist, orders, holdings and funds in an example broker app',
+  'EXP-09': 'Read a simulated contract note and identified who levies each charge',
+  'EXP-10': 'Followed an order from placement to holdings (and one that never filled)'
 };
 
-const DIMENSION_LABELS: Record<KnowledgeDimension, string> = {
-  fundamentals: 'Investing fundamentals',
-  products: 'Product structures',
-  risk: 'Risk and volatility',
-  tradingMechanics: 'Order mechanics',
-  platform: 'Brokerage workflow',
-  decisions: 'Financial decision concepts'
-};
+export function buildSummary(state: JourneyState) {
+  const stats = journeyStats(state);
+  const explored = state.plan.filter((p) => state.progress[p.id]);
+  const journey = state.plan.map((p) => ({
+    id: p.id,
+    title: EXPERIENCES[p.id].title,
+    status: p.status,
+    addedBy: p.addedBy,
+    reason: p.reason
+  }));
 
-const WORKFLOW_LABELS: Record<string, string> = {
-  'EXP-02': 'Compared a direct holding with a pooled unit',
-  'EXP-04': 'Read an invented value path and separated two kinds of risk',
-  'EXP-06': 'Set an invented order condition and compared order instructions'
-};
-
-export type JourneySummary = {
-  objective: string;
-  intentLabel: string;
-  planReason: string;
-  journeyCompleted: ReturnType<typeof journeyProgress>;
-  conceptsExplored: string[];
-  conceptsDemonstrated: string[];
-  topicsNeedingLearning: string[];
-  workflowsPractised: { id: string; title: string; status: string; workflow: string }[];
-  sources: { name: string; url: string }[];
-  confidenceLabel: string;
-};
-
-const CONFIDENCE_LABELS: Record<string, string> = {
-  'not-stated': 'Not stated',
-  low: 'Still unclear',
-  medium: 'Reasonably clear',
-  clear: 'Clearly stated'
-};
-
-export function buildJourneySummary(state: JourneyState): JourneySummary {
-  const exploredIds = [...new Set([...state.visited, ...Object.keys(state.attempts)])];
-  const workflowsPractised = exploredIds
-    .map((id) => {
-      const scenario = getScenario(id);
-      const attempt = state.attempts[id];
-      if (!scenario) return null;
-      const status = attempt?.result === 'demonstrated'
-        ? 'Concept demonstrated'
-        : attempt?.result === 'needs-review'
-          ? 'Worth another look'
-          : attempt?.result === 'skipped'
-            ? 'Skipped — available to revisit'
-            : 'Explored';
-      return {
-        id,
-        title: scenario.title,
-        status,
-        workflow: WORKFLOW_LABELS[id] ?? scenario.objective
-      };
-    })
-    .filter((entry): entry is { id: string; title: string; status: string; workflow: string } => Boolean(entry));
-
-  const conceptDimensions = new Set<KnowledgeDimension>();
-  for (const id of exploredIds) {
-    for (const dimension of getScenario(id)?.dimensions ?? []) conceptDimensions.add(dimension);
+  const conceptsExplored = new Set<string>();
+  const conceptsDemonstrated = new Set<string>();
+  for (const p of explored) {
+    const exp = getExperience(p.id);
+    const progress = state.progress[p.id];
+    if (!exp || !progress) continue;
+    const checks = allChecks(exp);
+    for (const o of progress.outcomes) {
+      const check = checks.find((c) => c.id === o.checkId);
+      if (!check) continue;
+      conceptsExplored.add(check.concept);
+      if (o.correct) conceptsDemonstrated.add(check.concept);
+    }
   }
-  const conceptsExplored = [...conceptDimensions].map((dimension) => DIMENSION_LABELS[dimension]);
 
-  const conceptsDemonstrated = Object.entries(state.profile)
-    .filter(([, entry]) => entry.state === 'demonstrated')
-    .map(([dimension, entry]) => `${DIMENSION_LABELS[dimension as KnowledgeDimension] ?? dimension}: ${entry.demonstrated[0] ?? 'explained in your own words'}`)
-    .slice(0, 6);
+  const furtherLearning = [
+    ...unresolvedMisconceptions(state.profile).map((m) => ({
+      label: MISCONCEPTIONS[m.id]?.correction ?? m.id,
+      experience: MISCONCEPTIONS[m.id]?.remedies[0]
+    })),
+    ...state.plan
+      .filter((p) => p.status === 'needs-review' || p.status === 'skipped')
+      .map((p) => ({ label: `Revisit “${EXPERIENCES[p.id].title}”`, experience: p.id }))
+  ].slice(0, 6);
 
-  const misconceptionNotes = unresolvedMisconceptions(state.profile).map((item) => item.note).filter(Boolean);
-  const topicsNeedingLearning = [...new Set([...misconceptionNotes, ...state.unknowns])].slice(0, 5);
+  const workflows = explored
+    .filter((p) => PLATFORM_WORKFLOW[p.id] && state.progress[p.id]?.labExplored)
+    .map((p) => PLATFORM_WORKFLOW[p.id] as string);
 
-  const sourceIds = [...new Set(exploredIds.flatMap((id) => getScenario(id)?.sourceIds ?? []))];
-  const sources = sourceIds
-    .map((id) => educationItems.find((item) => item.id === id)?.source)
-    .filter((source): source is { name: string; url: string } => Boolean(source))
+  const sourceIds = new Set(explored.flatMap((p) => EXPERIENCES[p.id].sourceIds));
+  const sources = educationItems
+    .filter((item) => sourceIds.has(item.id))
+    .map((item) => item.source)
+    .filter((s, i, all) => all.findIndex((x) => x.url === s.url) === i)
     .slice(0, 6);
 
   return {
-    objective: state.objective || 'You left your starting point open.',
-    intentLabel: INTENT_LABELS[state.intent] ?? 'Still open',
-    planReason: state.planReason,
-    journeyCompleted: journeyProgress(state),
-    conceptsExplored,
-    conceptsDemonstrated,
-    topicsNeedingLearning,
-    workflowsPractised,
+    objective: state.objective || 'You started by exploring without a fixed question.',
+    motivation: state.motivation,
+    stats,
+    journey,
+    conceptsExplored: [...conceptsExplored],
+    conceptsDemonstrated: [...conceptsDemonstrated],
+    misconceptionsResolved: resolvedMisconceptions(state.profile).map((m) => MISCONCEPTIONS[m.id]?.label ?? m.id),
+    furtherLearning,
+    workflows,
     sources,
-    confidenceLabel: CONFIDENCE_LABELS[state.confidence] ?? 'Not stated'
+    profile: DIMENSIONS.map((d) => ({ dimension: d, label: DIMENSION_LABELS[d], state: state.profile[d].state, stateLabel: STATE_LABELS[state.profile[d].state] }))
   };
 }
 
-export function journeySummaryText(state: JourneyState): string {
-  const summary = buildJourneySummary(state);
-  return [
-    'My Growerr learning journey',
+export function summaryText(state: JourneyState): string {
+  const s = buildSummary(state);
+  const lines = [
+    'My Growerr learning summary',
     '',
-    `Original objective: ${summary.objective}`,
-    `Learning focus: ${summary.intentLabel}`,
-    `Clarity of stated objective: ${summary.confidenceLabel}`,
-    `Journey completed: ${summary.journeyCompleted.explored} of ${summary.journeyCompleted.total} scenarios explored; ${summary.journeyCompleted.demonstrated} concept checks demonstrated.`,
+    `What I wanted to understand: ${s.objective}`,
     '',
-    'Journey taken:',
-    ...summary.workflowsPractised.map((item) => `- ${item.title} — ${item.status}`),
-    '',
-    'Concepts explored:',
-    ...summary.conceptsExplored.map((item) => `- ${item}`),
+    `Journey: ${s.stats.done} of ${s.stats.total} experiences demonstrated${s.stats.review ? `, ${s.stats.review} to revisit` : ''}${s.stats.skipped ? `, ${s.stats.skipped} skipped` : ''}.`,
+    ...s.journey.map((j) => `- ${j.title}: ${j.status.replace('-', ' ')}`),
     '',
     'Concepts demonstrated:',
-    ...(summary.conceptsDemonstrated.length > 0 ? summary.conceptsDemonstrated.map((item) => `- ${item}`) : ['- None recorded yet.']),
+    ...(s.conceptsDemonstrated.length ? s.conceptsDemonstrated.map((c) => `- ${c}`) : ['- None yet']),
     '',
-    'Topics needing further learning:',
-    ...(summary.topicsNeedingLearning.length > 0 ? summary.topicsNeedingLearning.map((item) => `- ${item}`) : ['- Nothing flagged.']),
+    'To keep learning:',
+    ...(s.furtherLearning.length ? s.furtherLearning.map((f) => `- ${f.label}`) : ['- Nothing flagged']),
     '',
-    'Workflows practised:',
-    ...summary.workflowsPractised.map((item) => `- ${item.workflow}`),
+    'Workflows practised (simulated):',
+    ...(s.workflows.length ? s.workflows.map((w) => `- ${w}`) : ['- None']),
     '',
     'Official resources:',
-    ...summary.sources.map((source) => `- ${source.name}: ${source.url}`),
+    ...s.sources.map((src) => `- ${src.name}: ${src.url}`),
     '',
-    'General education only. Not investment advice. Growerr is independent and not affiliated with Groww.'
-  ].map((line) => safeEcho(line, 500)).join('\n');
+    'Educational summary only — not investment advice. Growerr is independent and not affiliated with any broker.'
+  ];
+  return lines.join('\n');
 }

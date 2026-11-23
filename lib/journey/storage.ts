@@ -1,233 +1,233 @@
+/**
+ * Session persistence (FR-16). Browser-only; everything is sanitised on load
+ * so a tampered or outdated localStorage value can never break the app.
+ */
 import { safeEcho } from '../education';
-import { applyDiscoverySignals, createProfile, safeEvidence, sanitizeProfile } from './profile';
-import { SCENARIO_IDS, getScenario } from './scenarios';
-import { JOURNEY_VERSION, type DiscoveryReply, type JourneyMessage, type JourneyState, type ScenarioAttempt } from './types';
+import { EXPERIENCE_IDS, findCheck, getExperience, isExperienceId } from './experiences';
+import { OPENING_PROMPT } from './discovery';
+import { createProfile, safeEvidence, sanitizeProfile } from './profile';
+import {
+  JOURNEY_VERSION,
+  type AdaptationEvent,
+  type ChatMessage,
+  type CheckVariant,
+  type ExperienceId,
+  type ExperienceLevel,
+  type ExperienceProgress,
+  type Intent,
+  type JourneyState,
+  type PlanItem
+} from './types';
 
-const INTENTS = ['investing', 'trading', 'exploring', 'platform', 'unclear'];
-const DIMENSIONS = ['fundamentals', 'products', 'risk', 'tradingMechanics', 'platform', 'decisions'];
-const STATES = ['not-assessed', 'needs-introduction', 'developing', 'demonstrated'];
-const CONFIDENCES = ['not-stated', 'low', 'medium', 'clear'];
+export const STORAGE_KEY = 'growerr:journey:v2';
 
-function now(): string {
-  return new Date().toISOString();
-}
+const INTENTS: Intent[] = ['investing', 'trading', 'exploring', 'platform', 'unclear'];
+const LEVELS: ExperienceLevel[] = ['none', 'some', 'experienced', 'unknown'];
+const now = () => new Date().toISOString();
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function sanitiseAnswerValue(value: unknown): string | number | undefined {
-  if (typeof value === 'string') return safeEcho(value, 500);
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  return undefined;
-}
-
-function sanitiseAnswers(value: unknown): Record<string, string | number> {
-  if (!isRecord(value)) return {};
-  const result: Record<string, string | number> = {};
-  for (const [key, item] of Object.entries(value).slice(0, 20)) {
-    const safe = sanitiseAnswerValue(item);
-    if (safe !== undefined) result[key.slice(0, 60)] = safe;
-  }
-  return result;
-}
-
-function sanitiseReply(value: unknown): DiscoveryReply | undefined {
-  if (!isRecord(value)) return undefined;
-  const reflection = asString(value.reflection);
-  const question = asString(value.question);
-  if (!reflection || !question) return undefined;
-  const intent = asString(value.intent);
-  const rawSignals = Array.isArray(value.signals) ? value.signals.slice(0, 3) : [];
-  const reply: DiscoveryReply = {
-    reflection: safeEcho(reflection, 240),
-    explanations: [],
-    unknowns: Array.isArray(value.unknowns)
-      ? value.unknowns.slice(0, 2).map((item) => safeEcho(asString(item), 160)).filter(Boolean)
-      : [],
-    question: safeEcho(question, 240),
-    unsure: value.unsure === true,
-    intent: INTENTS.includes(intent) ? (intent as DiscoveryReply['intent']) : 'unclear',
-    objective: safeEcho(asString(value.objective), 160),
-    facts: Array.isArray(value.facts)
-      ? value.facts.slice(0, 3).map((item) => safeEcho(asString(item), 160)).filter(Boolean)
-      : [],
-    confidence: CONFIDENCES.includes(asString(value.confidence))
-      ? (asString(value.confidence) as DiscoveryReply['confidence'])
-      : 'low',
-    signals: rawSignals.map((entry) => {
-      if (!isRecord(entry)) return null;
-      const dimension = asString(entry.dimension);
-      const state = asString(entry.state);
-      const evidence = safeEvidence(entry.evidence);
-      if (!DIMENSIONS.includes(dimension) || !STATES.includes(state) || !evidence) return null;
-      return {
-        dimension: dimension as DiscoveryReply['signals'][number]['dimension'],
-        state: state as DiscoveryReply['signals'][number]['state'],
-        evidence
-      };
-    }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-  };
-  if (asString(value.notice)) reply.notice = safeEcho(asString(value.notice), 240);
-  const rawExplanations = Array.isArray(value.explanations) ? value.explanations.slice(0, 1) : [];
-  reply.explanations = rawExplanations.map((entry) => {
-    if (!isRecord(entry)) return null;
-    const title = asString(entry.title);
-    const text = asString(entry.text);
-    const sourceName = asString(entry.sourceName);
-    const sourceUrl = asString(entry.sourceUrl);
-    if (!/^https:\/\//.test(sourceUrl)) return null;
-    return { title, text, sourceName, sourceUrl };
-  }).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
-  return reply;
-}
-
-function sanitiseMessages(value: unknown): JourneyMessage[] {
-  if (!Array.isArray(value)) return [];
-  return value.slice(-40).map((entry) => {
-    if (!isRecord(entry)) return null;
-    const role = entry.role === 'guide' ? 'guide' : entry.role === 'user' ? 'user' : null;
-    const text = safeEcho(asString(entry.text), 1200);
-    if (!role || !text) return null;
-    const message: JourneyMessage = {
-      id: typeof entry.id === 'number' && Number.isFinite(entry.id) ? Math.trunc(entry.id) : Date.now(),
-      role,
-      text,
-      at: asString(entry.at) || now()
-    };
-    if (entry.source === 'ai' || entry.source === 'static') message.source = entry.source;
-    const reply = sanitiseReply(entry.reply);
-    if (reply) message.reply = reply;
-    return message;
-  }).filter((entry): entry is JourneyMessage => Boolean(entry));
-}
-
-function sanitiseAttempts(value: unknown): Record<string, ScenarioAttempt> {
-  if (!isRecord(value)) return {};
-  const attempts: Record<string, ScenarioAttempt> = {};
-  for (const [key, raw] of Object.entries(value).slice(0, 10)) {
-    if (!getScenario(key) || !isRecord(raw)) continue;
-    const result = asString(raw.result);
-    const stepResults: Record<string, boolean> = {};
-    if (isRecord(raw.stepResults)) {
-      for (const [stepKey, passed] of Object.entries(raw.stepResults).slice(0, 10)) {
-        if (typeof passed === 'boolean') stepResults[stepKey.slice(0, 60)] = passed;
-      }
-    }
-    attempts[key] = {
-      scenarioId: key,
-      result: ['in-progress', 'demonstrated', 'needs-review', 'skipped'].includes(result)
-        ? (result as ScenarioAttempt['result'])
-        : 'in-progress',
-      reviewCount: typeof raw.reviewCount === 'number' && Number.isFinite(raw.reviewCount) ? Math.min(Math.max(raw.reviewCount, 0), 3) : 0,
-      stepResults,
-      reviewSteps: Array.isArray(raw.reviewSteps)
-        ? raw.reviewSteps.map(asString).filter(Boolean).slice(0, 10)
-        : Object.entries(stepResults).filter(([, passed]) => !passed).map(([stepId]) => stepId),
-      answers: sanitiseAnswers(raw.answers),
-      feedback: Array.isArray(raw.feedback) ? raw.feedback.slice(0, 3).map((item) => safeEcho(asString(item), 220)).filter(Boolean) : [],
-      updatedAt: asString(raw.updatedAt) || now()
-    };
-  }
-  return attempts;
+export function newId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function createInitialState(): JourneyState {
-  const timestamp = now();
+  const at = now();
   return {
     version: JOURNEY_VERSION,
     phase: 'discovery',
-    status: 'active',
+    paused: false,
     intent: 'unclear',
     objective: '',
-    facts: [],
-    unknowns: [],
-    confidence: 'not-stated',
+    motivation: '',
+    concerns: [],
+    questions: [],
+    experience: 'unknown',
+    appFamiliarity: 'unknown',
+    focus: [],
+    readyToPlan: false,
+    messages: [{ id: 'm-0', role: 'guide', text: OPENING_PROMPT, source: 'static', at }],
     profile: createProfile(),
-    messages: [{
-      id: 1,
-      role: 'guide',
-      text: "Tell me what got you interested in investing. You don't need to know any financial terms. Just tell me what you're trying to understand.",
-      source: 'static',
-      at: timestamp
-    }],
-    planReason: '',
-    queue: [],
-    visited: [],
-    currentScenarioId: null,
-    stepIndex: 0,
-    answers: {},
-    attempts: {},
-    lastEvaluation: null,
-    startedAt: timestamp,
-    updatedAt: timestamp
+    plan: [],
+    currentId: null,
+    progress: {},
+    log: [],
+    aiMode: 'unknown',
+    startedAt: at,
+    updatedAt: at
   };
 }
 
-export function applyDiscoveryReply(state: JourneyState, reply: DiscoveryReply): JourneyState {
-  const openClarification = !reply.objective && Boolean(state.objective);
-  return {
-    ...state,
-    intent: openClarification && state.intent !== 'unclear' ? state.intent : reply.intent,
-    objective: reply.objective || state.objective,
-    facts: [...state.facts, ...reply.facts].slice(-6),
-    unknowns: [...state.unknowns, ...(openClarification ? [] : reply.unknowns)].slice(-6),
-    confidence: openClarification && state.confidence !== 'not-stated' ? state.confidence : reply.confidence,
-    profile: applyDiscoverySignals(state.profile, reply.signals)
-  };
+const isRecord = (v: unknown): v is Record<string, unknown> => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+const str = (v: unknown, n = 160) => (typeof v === 'string' ? safeEcho(v, n) : '');
+const strList = (v: unknown, n: number, max = 160) => (Array.isArray(v) ? v.map((i) => str(i, max)).filter(Boolean).slice(-n) : []);
+
+function sanitizeMessages(v: unknown): ChatMessage[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .slice(-60)
+    .map((m): ChatMessage | null => {
+      if (!isRecord(m)) return null;
+      const role = m.role === 'user' || m.role === 'guide' ? m.role : null;
+      const text = str(m.text, 1200);
+      if (!role || !text) return null;
+      const terms = Array.isArray(m.terms)
+        ? m.terms
+            .filter(isRecord)
+            .map((t) => ({ term: str(t.term, 40), meaning: str(t.meaning, 220) }))
+            .filter((t) => t.term && t.meaning)
+            .slice(0, 2)
+        : undefined;
+      return {
+        id: str(m.id, 40) || newId(),
+        role,
+        text,
+        terms: terms && terms.length > 0 ? terms : undefined,
+        source: m.source === 'ai' || m.source === 'static' || m.source === 'safety' ? m.source : undefined,
+        at: str(m.at, 40) || now()
+      };
+    })
+    .filter((m): m is ChatMessage => Boolean(m));
 }
 
-export function sanitizeJourneyState(value: unknown): JourneyState | null {
+function sanitizePlan(v: unknown): PlanItem[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  return v
+    .filter(isRecord)
+    .map((p): PlanItem | null => {
+      if (!isExperienceId(p.id) || seen.has(p.id)) return null;
+      seen.add(p.id);
+      const status = ['pending', 'active', 'demonstrated', 'needs-review', 'skipped'].includes(p.status as string)
+        ? (p.status as PlanItem['status'])
+        : 'pending';
+      const addedBy = p.addedBy === 'adaptation' || p.addedBy === 'user' ? p.addedBy : 'planner';
+      return { id: p.id, reason: str(p.reason, 220) || 'Part of your plan.', addedBy, status };
+    })
+    .filter((p): p is PlanItem => Boolean(p))
+    .slice(0, 10);
+}
+
+function sanitizeProgress(v: unknown): JourneyState['progress'] {
+  if (!isRecord(v)) return {};
+  const out: JourneyState['progress'] = {};
+  for (const [key, raw] of Object.entries(v)) {
+    if (!isExperienceId(key) || !isRecord(raw)) continue;
+    const exp = getExperience(key);
+    if (!exp) continue;
+    const queue = Array.isArray(raw.queue)
+      ? raw.queue
+          .filter(isRecord)
+          .map((q) => ({
+            checkId: str(q.checkId, 60),
+            variant: (q.variant === 'alternative' || q.variant === 'transfer' ? q.variant : 'core') as CheckVariant
+          }))
+          .filter((q) => findCheck(key, q.checkId))
+          .slice(0, 12)
+      : [];
+    const outcomes = Array.isArray(raw.outcomes)
+      ? raw.outcomes
+          .filter(isRecord)
+          .map((o) => ({
+            checkId: str(o.checkId, 60),
+            variant: (o.variant === 'alternative' || o.variant === 'transfer' ? o.variant : 'core') as CheckVariant,
+            correct: o.correct === true,
+            misconceptionIds: strList(o.misconceptionIds, 3, 60),
+            answeredAt: str(o.answeredAt, 40) || now()
+          }))
+          .filter((o) => findCheck(key, o.checkId))
+          .slice(-30)
+      : [];
+    const stage = ['intro', 'lab', 'checks', 'done'].includes(raw.stage as string) ? (raw.stage as ExperienceProgress['stage']) : 'intro';
+    const result = ['in-progress', 'demonstrated', 'needs-review', 'skipped'].includes(raw.result as string)
+      ? (raw.result as ExperienceProgress['result'])
+      : 'in-progress';
+    const safeQueue = queue.length > 0 ? queue : exp.checks.map((c) => ({ checkId: c.id, variant: 'core' as const }));
+    const index = typeof raw.index === 'number' && Number.isFinite(raw.index) ? Math.min(Math.max(Math.trunc(raw.index), 0), safeQueue.length - 1) : 0;
+    out[key] = {
+      id: key,
+      stage,
+      labExplored: raw.labExplored === true,
+      queue: safeQueue,
+      index,
+      outcomes,
+      runs: typeof raw.runs === 'number' && Number.isFinite(raw.runs) ? Math.min(Math.max(Math.trunc(raw.runs), 1), 50) : 1,
+      result
+    };
+  }
+  return out;
+}
+
+function sanitizeLog(v: unknown): AdaptationEvent[] {
+  if (!Array.isArray(v)) return [];
+  const kinds = ['profile', 'plan', 'misconception', 'alternative', 'remedy', 'demonstrated', 'skip', 'revisit', 'safety'];
+  return v
+    .filter(isRecord)
+    .map((e) => ({
+      at: str(e.at, 40) || now(),
+      kind: (kinds.includes(e.kind as string) ? e.kind : 'plan') as AdaptationEvent['kind'],
+      text: str(e.text, 220)
+    }))
+    .filter((e) => e.text)
+    .slice(-40);
+}
+
+export function sanitizeState(value: unknown): JourneyState | null {
   if (!isRecord(value) || value.version !== JOURNEY_VERSION) return null;
-  const phase = asString(value.phase);
-  const status = asString(value.status);
-  const intent = asString(value.intent);
-  const queue = Array.isArray(value.queue)
-    ? value.queue.map(asString).filter((id) => (SCENARIO_IDS as readonly string[]).includes(id)).slice(0, 6)
-    : [];
-  const visited = Array.isArray(value.visited)
-    ? [...new Set(value.visited.map(asString).filter((id) => (SCENARIO_IDS as readonly string[]).includes(id)))].slice(0, 6)
-    : [];
-  const currentScenarioId = asString(value.currentScenarioId);
-  const step = getScenario(currentScenarioId)?.steps.length ?? 0;
-  const stepIndex = typeof value.stepIndex === 'number' && Number.isFinite(value.stepIndex)
-    ? Math.min(Math.max(Math.trunc(value.stepIndex), 0), Math.max(step - 1, 0))
-    : 0;
-  const nextPhase = phase === 'scenario' || phase === 'summary' ? phase : 'discovery';
+  const base = createInitialState();
+  const messages = sanitizeMessages(value.messages);
+  const plan = sanitizePlan(value.plan);
+  const progress = sanitizeProgress(value.progress);
+  const phase = ['discovery', 'plan', 'experience', 'summary'].includes(value.phase as string) ? (value.phase as JourneyState['phase']) : 'discovery';
+  const currentId = isExperienceId(value.currentId) && progress[value.currentId] ? value.currentId : null;
   const state: JourneyState = {
-    version: JOURNEY_VERSION,
-    phase: nextPhase,
-    status: status === 'paused' ? 'paused' : 'active',
-    intent: INTENTS.includes(intent) ? (intent as JourneyState['intent']) : 'unclear',
-    objective: safeEcho(asString(value.objective), 160),
-    facts: Array.isArray(value.facts)
-      ? value.facts.slice(0, 3).map((item) => safeEcho(asString(item), 160)).filter(Boolean)
-      : [],
-    unknowns: Array.isArray(value.unknowns)
-      ? value.unknowns.slice(0, 4).map((item) => safeEcho(asString(item), 160)).filter(Boolean)
-      : [],
-    confidence: CONFIDENCES.includes(asString(value.confidence))
-      ? (asString(value.confidence) as JourneyState['confidence'])
-      : 'not-stated',
+    ...base,
+    phase: phase === 'experience' && !currentId ? (plan.length > 0 ? 'plan' : 'discovery') : phase === 'plan' && plan.length === 0 ? 'discovery' : phase,
+    paused: value.paused === true,
+    intent: INTENTS.includes(value.intent as Intent) ? (value.intent as Intent) : 'unclear',
+    objective: str(value.objective),
+    motivation: str(value.motivation),
+    concerns: strList(value.concerns, 4),
+    questions: strList(value.questions, 4),
+    experience: LEVELS.includes(value.experience as ExperienceLevel) ? (value.experience as ExperienceLevel) : 'unknown',
+    appFamiliarity: LEVELS.includes(value.appFamiliarity as ExperienceLevel) ? (value.appFamiliarity as ExperienceLevel) : 'unknown',
+    focus: Array.isArray(value.focus) ? (value.focus.filter(isExperienceId).slice(0, 3) as ExperienceId[]) : [],
+    readyToPlan: value.readyToPlan === true,
+    messages: messages.length > 0 ? messages : base.messages,
     profile: sanitizeProfile(value.profile),
-    messages: sanitiseMessages(value.messages),
-    planReason: safeEcho(asString(value.planReason), 220),
-    queue,
-    visited,
-    currentScenarioId: getScenario(currentScenarioId) ? currentScenarioId : null,
-    stepIndex,
-    answers: sanitiseAnswers(value.answers),
-    attempts: sanitiseAttempts(value.attempts),
-    lastEvaluation: null,
-    startedAt: asString(value.startedAt) || now(),
-    updatedAt: asString(value.updatedAt) || now()
+    plan,
+    currentId,
+    progress,
+    log: sanitizeLog(value.log),
+    aiMode: value.aiMode === 'ai' || value.aiMode === 'static' ? value.aiMode : 'unknown',
+    startedAt: str(value.startedAt, 40) || base.startedAt,
+    updatedAt: str(value.updatedAt, 40) || base.updatedAt
   };
-
-  if (state.messages.length === 0) return null;
-  if (state.phase === 'scenario' && !state.currentScenarioId) state.phase = 'discovery';
   return state;
 }
+
+export function loadState(): JourneyState | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? sanitizeState(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveState(state: JourneyState): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage may be unavailable (private mode). The journey still works in memory.
+  }
+}
+
+export function clearState(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem('growerr:journey:v1');
+  } catch {
+    // ignore
+  }
+}
+
+export { EXPERIENCE_IDS, safeEvidence };

@@ -1,192 +1,168 @@
+/**
+ * User Understanding Profile (Module 2).
+ *
+ * Keeps CLAIMED knowledge (what someone says) strictly separate from
+ * DEMONSTRATED knowledge (what they showed in a check). Discovery can only
+ * move a dimension to "needs-introduction" or "developing"; only a correct
+ * check answer can move it to "demonstrated".
+ */
 import { detectSensitive } from '../education';
-import type {
-  KnowledgeDimension,
-  KnowledgeState,
-  MisconceptionRecord,
-  Profile,
-  ProfileEntry,
-  ProfileSignal
-} from './types';
+import type { Dimension, KnowledgeState, Profile, ProfileEntry } from './types';
 
-export const KNOWLEDGE_DIMENSIONS: KnowledgeDimension[] = [
-  'fundamentals',
-  'products',
-  'risk',
-  'tradingMechanics',
-  'platform',
-  'decisions'
-];
+export const DIMENSIONS: Dimension[] = ['fundamentals', 'products', 'risk', 'tradingMechanics', 'platform', 'decisions'];
 
-const STATES: KnowledgeState[] = ['not-assessed', 'needs-introduction', 'developing', 'demonstrated'];
+export const DIMENSION_LABELS: Record<Dimension, string> = {
+  fundamentals: 'Investment fundamentals',
+  products: 'Financial products',
+  risk: 'Risk & volatility',
+  tradingMechanics: 'Trading mechanics',
+  platform: 'Brokerage app familiarity',
+  decisions: 'Financial decision concepts'
+};
 
-function isDimension(value: unknown): value is KnowledgeDimension {
-  return typeof value === 'string' && KNOWLEDGE_DIMENSIONS.includes(value as KnowledgeDimension);
+export const STATE_LABELS: Record<KnowledgeState, string> = {
+  'not-assessed': 'Not assessed',
+  'needs-introduction': 'Needs introduction',
+  developing: 'Developing',
+  demonstrated: 'Demonstrated'
+};
+
+export const STATES: KnowledgeState[] = ['not-assessed', 'needs-introduction', 'developing', 'demonstrated'];
+
+export function isDimension(value: unknown): value is Dimension {
+  return typeof value === 'string' && (DIMENSIONS as string[]).includes(value);
 }
 
-function isState(value: unknown): value is KnowledgeState {
-  return typeof value === 'string' && STATES.includes(value as KnowledgeState);
+export function isState(value: unknown): value is KnowledgeState {
+  return typeof value === 'string' && (STATES as string[]).includes(value);
 }
 
-function stateRank(state: KnowledgeState): number {
-  return STATES.indexOf(state);
-}
-
-export function safeEvidence(value: unknown, maxLength = 160): string {
+export function safeEvidence(value: unknown, maxLength = 140): string {
   if (typeof value !== 'string') return '';
   if (detectSensitive(value)) return '';
-  return value
-    .replace(/https?:\/\/\S+|www\.\S+/gi, '[link removed]')
-    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[email removed]')
-    .replace(/\b\d{5,}\b/g, '[number removed]')
+  const cleaned = value
+    .replace(/https?:\/\/\S+|www\.\S+/gi, '')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '')
+    .replace(/\b\d{6,}\b/g, '')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
+    .trim();
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 1).trimEnd()}…` : cleaned;
 }
 
-function emptyEntry(dimension: KnowledgeDimension): ProfileEntry {
+function emptyEntry(dimension: Dimension): ProfileEntry {
   return { dimension, state: 'not-assessed', claimed: [], demonstrated: [], misconceptions: [] };
 }
 
 export function createProfile(): Profile {
-  return KNOWLEDGE_DIMENSIONS.reduce((profile, dimension) => {
-    profile[dimension] = emptyEntry(dimension);
-    return profile;
-  }, {} as Profile);
+  return Object.fromEntries(DIMENSIONS.map((d) => [d, emptyEntry(d)])) as Profile;
 }
 
-function addUnique(list: string[], value: string, limit = 5): string[] {
-  if (!value) return list;
-  if (list.some((item) => item.toLowerCase() === value.toLowerCase())) return list;
+function clone(profile: Profile): Profile {
+  return Object.fromEntries(
+    DIMENSIONS.map((d) => {
+      const e = profile[d] ?? emptyEntry(d);
+      return [d, { ...e, claimed: [...e.claimed], demonstrated: [...e.demonstrated], misconceptions: e.misconceptions.map((m) => ({ ...m })) }];
+    })
+  ) as Profile;
+}
+
+function addUnique(list: string[], value: string, limit = 4): string[] {
+  if (!value || list.some((item) => item.toLowerCase() === value.toLowerCase())) return list;
   return [...list, value].slice(-limit);
 }
 
-function promote(current: KnowledgeState, incoming: KnowledgeState): KnowledgeState {
-  return stateRank(incoming) > stateRank(current) ? incoming : current;
-}
-
-function demote(current: KnowledgeState, incoming: KnowledgeState): KnowledgeState {
-  return stateRank(incoming) < stateRank(current) ? incoming : current;
-}
-
-export function applyDiscoverySignals(profile: Profile, signals: ProfileSignal[]): Profile {
-  const next: Profile = structuredCloneSafe(profile);
-  for (const signal of signals.slice(0, 3)) {
-    if (!isDimension(signal?.dimension) || !isState(signal?.state)) continue;
-    const evidence = safeEvidence(signal.evidence);
-    if (!evidence) continue;
-    const entry = next[signal.dimension];
-    // Discovery records what a person says about themselves, not demonstrated understanding.
-    const claimedState: KnowledgeState = signal.state === 'demonstrated' ? 'developing' : signal.state;
-    entry.claimed = addUnique(entry.claimed, evidence);
-    entry.state = promote(entry.state, claimedState);
-  }
-  return next;
-}
-
-export function recordMisconception(
-  profile: Profile,
-  dimension: KnowledgeDimension,
-  id: string,
-  note: string
-): Profile {
-  if (!isDimension(dimension) || !id) return profile;
-  const next = structuredCloneSafe(profile);
-  const entry = next[dimension];
-  const records: MisconceptionRecord[] = entry.misconceptions.filter((item) => item.id !== id);
-  records.push({ id, resolved: false, note: safeEvidence(note, 120) || 'Review this idea again.' });
-  entry.misconceptions = records.slice(-6);
-  entry.state = demote(entry.state, 'needs-introduction');
-  return next;
-}
-
-export function resolveMisconceptions(profile: Profile, ids: string[]): Profile {
-  if (ids.length === 0) return profile;
-  const next = structuredCloneSafe(profile);
-  for (const dimension of KNOWLEDGE_DIMENSIONS) {
-    next[dimension].misconceptions = next[dimension].misconceptions.map((item) =>
-      ids.includes(item.id) ? { ...item, resolved: true } : item
-    );
-  }
-  return next;
-}
-
-export function resolveMisconceptionsForDimensions(profile: Profile, dimensions: KnowledgeDimension[]): Profile {
-  if (dimensions.length === 0) return profile;
-  const next = structuredCloneSafe(profile);
-  for (const dimension of dimensions) {
-    if (!isDimension(dimension)) continue;
-    next[dimension].misconceptions = next[dimension].misconceptions.map((item) => ({ ...item, resolved: true }));
-  }
-  return next;
-}
-
-export function applyDemonstration(
-  profile: Profile,
-  dimension: KnowledgeDimension,
-  evidence: string,
-  misconceptionIds: string[]
-): Profile {
+/** Apply something the person SAID. Never produces "demonstrated". */
+export function applyClaim(profile: Profile, dimension: Dimension, state: KnowledgeState, evidence: string): Profile {
   if (!isDimension(dimension)) return profile;
-  let next = structuredCloneSafe(profile);
+  const next = clone(profile);
+  const entry = next[dimension];
   const safe = safeEvidence(evidence);
-  if (safe) {
-    next[dimension].demonstrated = addUnique(next[dimension].demonstrated, safe);
-    next[dimension].state = 'demonstrated';
-  } else {
-    next[dimension].state = promote(next[dimension].state, 'developing');
+  if (safe) entry.claimed = addUnique(entry.claimed, safe);
+  const claimed: KnowledgeState = state === 'demonstrated' ? 'developing' : state;
+  // Claims only move state when nothing has been demonstrated yet.
+  if (entry.state === 'not-assessed' || (entry.state === 'needs-introduction' && claimed === 'developing')) {
+    if (claimed !== 'not-assessed') entry.state = claimed;
   }
-  next = resolveMisconceptions(next, misconceptionIds);
   return next;
+}
+
+export function recordMisconception(profile: Profile, dimension: Dimension, id: string, source: 'discovery' | 'check'): Profile {
+  if (!isDimension(dimension) || !id) return profile;
+  const next = clone(profile);
+  const entry = next[dimension];
+  const existing = entry.misconceptions.find((m) => m.id === id);
+  if (existing) {
+    existing.resolved = false;
+    existing.resolvedAt = undefined;
+  } else {
+    entry.misconceptions = [...entry.misconceptions, { id, source, resolved: false, detectedAt: new Date().toISOString() }].slice(-8);
+  }
+  // A misconception means the dimension is not yet understood.
+  entry.state = entry.state === 'demonstrated' ? 'developing' : 'needs-introduction';
+  return next;
+}
+
+export function resolveMisconception(profile: Profile, id: string): Profile {
+  const next = clone(profile);
+  for (const d of DIMENSIONS) {
+    for (const m of next[d].misconceptions) {
+      if (m.id === id && !m.resolved) {
+        m.resolved = true;
+        m.resolvedAt = new Date().toISOString();
+      }
+    }
+  }
+  return next;
+}
+
+/** A correct check answer. Moves the dimension forward based on evidence. */
+export function applyDemonstration(profile: Profile, dimension: Dimension, evidence: string, fullyDemonstrated: boolean): Profile {
+  if (!isDimension(dimension)) return profile;
+  const next = clone(profile);
+  const entry = next[dimension];
+  entry.demonstrated = addUnique(entry.demonstrated, safeEvidence(evidence, 120), 6);
+  const open = entry.misconceptions.some((m) => !m.resolved);
+  entry.state = fullyDemonstrated && !open ? 'demonstrated' : entry.state === 'demonstrated' ? 'demonstrated' : 'developing';
+  return next;
+}
+
+export function unresolvedMisconceptions(profile: Profile) {
+  return DIMENSIONS.flatMap((d) => profile[d].misconceptions.filter((m) => !m.resolved).map((m) => ({ ...m, dimension: d })));
+}
+
+export function resolvedMisconceptions(profile: Profile) {
+  return DIMENSIONS.flatMap((d) => profile[d].misconceptions.filter((m) => m.resolved).map((m) => ({ ...m, dimension: d })));
 }
 
 export function sanitizeProfile(value: unknown): Profile {
   const profile = createProfile();
   if (!value || typeof value !== 'object' || Array.isArray(value)) return profile;
   const source = value as Record<string, unknown>;
-
-  for (const dimension of KNOWLEDGE_DIMENSIONS) {
-    const raw = source[dimension];
+  for (const d of DIMENSIONS) {
+    const raw = source[d];
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
-    const entry = raw as Record<string, unknown>;
-    const target = profile[dimension];
-    target.state = isState(entry.state) ? entry.state : 'not-assessed';
-    target.claimed = Array.isArray(entry.claimed)
-      ? entry.claimed.map((item) => safeEvidence(item)).filter(Boolean).slice(0, 5)
-      : [];
-    target.demonstrated = Array.isArray(entry.demonstrated)
-      ? entry.demonstrated.map((item) => safeEvidence(item)).filter(Boolean).slice(0, 5)
-      : [];
-    target.misconceptions = Array.isArray(entry.misconceptions)
-      ? entry.misconceptions
-          .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-          .map((item) => ({
-            id: typeof item.id === 'string' ? item.id.slice(0, 60) : '',
-            resolved: item.resolved === true,
-            note: safeEvidence(item.note, 120)
-          }))
-          .filter((item) => item.id && item.note)
-          .slice(0, 6)
-      : [];
+    const e = raw as Record<string, unknown>;
+    const strings = (v: unknown, n: number) =>
+      Array.isArray(v) ? v.map((item) => safeEvidence(item)).filter(Boolean).slice(-n) : [];
+    profile[d] = {
+      dimension: d,
+      state: isState(e.state) ? e.state : 'not-assessed',
+      claimed: strings(e.claimed, 4),
+      demonstrated: strings(e.demonstrated, 6),
+      misconceptions: Array.isArray(e.misconceptions)
+        ? e.misconceptions
+            .filter((m): m is Record<string, unknown> => Boolean(m) && typeof m === 'object')
+            .map((m) => ({
+              id: typeof m.id === 'string' ? m.id.slice(0, 60) : '',
+              source: m.source === 'discovery' ? ('discovery' as const) : ('check' as const),
+              resolved: m.resolved === true,
+              detectedAt: typeof m.detectedAt === 'string' ? m.detectedAt : new Date().toISOString(),
+              resolvedAt: typeof m.resolvedAt === 'string' ? m.resolvedAt : undefined
+            }))
+            .filter((m) => m.id)
+            .slice(-8)
+        : []
+    };
   }
   return profile;
-}
-
-export function unresolvedMisconceptions(profile: Profile): MisconceptionRecord[] {
-  return KNOWLEDGE_DIMENSIONS.flatMap((dimension) =>
-    profile[dimension].misconceptions.filter((item) => !item.resolved)
-  ).slice(0, 8);
-}
-
-function structuredCloneSafe(profile: Profile): Profile {
-  return KNOWLEDGE_DIMENSIONS.reduce((next, dimension) => {
-    const entry = profile[dimension] ?? emptyEntry(dimension);
-    next[dimension] = {
-      dimension,
-      state: isState(entry.state) ? entry.state : 'not-assessed',
-      claimed: [...(entry.claimed ?? [])],
-      demonstrated: [...(entry.demonstrated ?? [])],
-      misconceptions: (entry.misconceptions ?? []).map((item) => ({ ...item }))
-    };
-    return next;
-  }, {} as Profile);
 }

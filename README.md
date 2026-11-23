@@ -1,79 +1,60 @@
-# Growerr
+# Growerr — AI-powered adaptive investing onboarding
 
-Growerr is a free, independent educational journey for people who are new to investing. It begins with one conversational question, adapts through short hypothetical scenarios, and ends with a learning summary. It is browser-only: there is no account, no database, no server-side journey storage, and no transfer of answers to Groww.
+Growerr is an educational onboarding companion for adults in India who are new to investing, trading or brokerage apps. It works out what a person doesn't yet understand through conversation, then builds a personalised journey of interactive simulations. The journey adapts to what the person *demonstrates*, not to what they click through. It ends with a learning summary and an optional, clearly explained handoff to Groww.
 
-Growerr is not a broker, not a registered investment adviser, and is not affiliated with Groww. It gives general education only: no product or allocation recommendations, rankings, forecasts, guarantees, buy/sell/hold calls, or suitability labels.
+> Growerr is not a broker or a SEBI-registered investment adviser, gives no recommendations, and is not affiliated with Groww. All simulations use invented numbers.
 
-## The journey
+## User journey
 
-1. **Conversational discovery** — the opening question is: “Tell me what got you interested in investing. You don't need to know any financial terms. Just tell me what you're trying to understand.” One short, optional clarification is asked at a time. “Not sure”, “Skip” and “Prefer not to say” are complete answers.
-2. **Adaptive planning** — a deterministic engine ranks `EXP-02`, `EXP-04` and `EXP-06` using the stated objective, user-stated facts, claimed knowledge, misconceptions, progress, unresolved questions, and intent. It does not follow a rigid linear script.
-3. **Interactive scenarios** — every scenario has an objective, a labelled hypothetical context, an activity, expected outcome, feedback for mistakes, misconception detection, and follow-up evaluation. All numbers are invented examples, not live prices, predictions, or returns.
-4. **Evaluation and adaptation** — an own-words answer or choice is checked. A wrong answer records a misconception, offers an alternative explanation, and keeps that idea available as a repeat or different learning experience. Clicking through is never marked as demonstrated understanding.
-5. **Controls** — pause, resume, skip, revisit, and back-to-conversation are available. Progress is saved in the same browser.
-6. **Learning summary** — shows the original objective, journey completed, concepts explored, concepts demonstrated, topics needing further learning, workflows practised, and official education sources. The Groww handoff is optional, external, and clearly labelled.
+1. **Conversational discovery** (`components/journey/DiscoveryChat.tsx`). It opens with: *"Tell me what got you interested in investing…"*. Context-aware follow-up questions (at most about three) clarify the goal, prior experience and concerns. Users can change direction at any time.
+2. **Understanding profile** (`lib/journey/profile.ts`). It tracks six knowledge dimensions with four states (not assessed → needs introduction → developing → demonstrated). Anything the user *said* can only reach "developing". Only correct check answers can reach "demonstrated". Misconceptions are tracked as open or resolved. There are no scores.
+3. **Journey planner** (`lib/journey/engine.ts`). It ranks the 10-experience library against intent, the AI's focus, topic matches, misconceptions and the profile. It inserts prerequisites and explains each step ("Why this is in your plan").
+4. **Interactive experiences** (`lib/journey/experiences.ts`, `components/labs/*`). Each of EXP-01 to EXP-10 has an objective, starting context, an interactive simulation, an expected outcome, 2–3 concept checks (choice, sort, slider or explain-in-your-own-words), an alternative explanation with a fresh example for every check, and a transfer question on an unfamiliar example.
+5. **Evaluation and adaptation**.
+   - A wrong answer records the misconception, shows an alternative explanation and inserts a *new* check on the same concept.
+   - A second miss schedules a remedial experience in the plan.
+   - An experience is "demonstrated" only when every concept and the transfer question are answered correctly.
+   - Every adaptive decision is logged in "How your journey adapted".
+6. **Summary and handoff** (`components/journey/SummaryView.tsx`). It shows:
+   - the objective and the journey taken
+   - concepts demonstrated, misconceptions resolved and topics to revisit
+   - the simulated workflows practised and official SEBI and AMFI resources
+   - a copy or download option for the summary
+   - an optional Groww link (`https://groww.in/`), preceded by a "what to expect" dialog.
+   Nothing is shared with Groww.
 
-## First vertical slice
+Users can pause, resume, skip, revisit, add experiences from the library, or finish without visiting Groww. Progress is saved in `localStorage` under the key `growerr:journey:v2`.
 
-| ID | Scenario | Main concept |
+## AI architecture
+
+| Component | Where | Notes |
 |---|---|---|
-| `EXP-02` | Two ways to hold something | Direct share ownership versus a pooled mutual fund unit |
-| `EXP-04` | A hypothetical value path | Volatility as two-sided movement and the limit of diversification |
-| `EXP-06` | A hypothetical order condition | Limit conditions, market orders, and why execution is not guaranteed |
+| Intent analyser and knowledge diagnostician | `lib/journey/discovery.ts` | One structured Gemini call returning intent, objective, concerns, signals, misconception ids, focus ids, a follow-up question and term explanations |
+| Journey planner and adaptation engine | `lib/journey/engine.ts` | Deterministic, pure functions, fully unit-tested |
+| Experience generator | `lib/journey/experiences.ts` | The AI only *selects* from approved scenarios. It never generates content that gets rendered |
+| Evaluator | `lib/journey/evaluation.ts`, `lib/journey/ai-evaluator.ts` | Choice, sort and slider checks are deterministic. Explain answers are graded by AI, with guards against over-generous grading |
+| Safety layer | `lib/education.ts`, `app/api/journey/route.ts` | Advice requests get a boundary reply. PAN, Aadhaar, bank details and OTPs are blocked before reaching the AI. AI output is validated against enums and approved ids and scanned for advice, return promises and unsupported facts |
 
-Official notes come from SEBI investor education and Mutual Funds Sahi Hai (AMFI). Source names and URLs are fixed in `lib/education.ts` and are the only notes the model may copy.
+- The Gemini client is in `lib/ai/gemini.ts`. It calls `generateContent` with a JSON response schema, server-side only. It uses `GEMINI_MODEL` if set, otherwise falls back through `gemini-2.5-flash`, `gemini-flash-latest` and `gemini-2.0-flash`.
+- If the key is missing or a call fails, a rule-based guide takes over and the UI says so.
 
-## Browser-only state
+### Environment variables
 
-All journey state lives under one versioned key:
+| Name | Required | Purpose |
+|---|---|---|
+| `GEMINI_API_KEY` | for AI mode | Server-side Gemini key. Without it the static guide is used |
+| `GEMINI_MODEL` | no | Preferred model id |
 
-```
-growerr:journey:v1
-```
+`GET /api/journey` returns `{ ai: "configured" | "not-configured" }` for health checks.
 
-It stores the discovery conversation, user-stated facts, unknowns, objective clarity, six knowledge dimensions, claimed and demonstrated knowledge, misconceptions, scenario attempts, progress, and the summary. `/about` has a “Delete my journey” control that removes the key from the current browser.
+## Development
 
-The separate optional guide at `/coach` does not receive the journey profile, progress, or summary.
-
-## AI, validation, and fallback
-
-- The journey API uses Gemini Interactions API v1: `POST https://generativelanguage.googleapis.com/v1/interactions`, `x-goog-api-key`, `store: false`, and model `gemini-4-hydrogen` by default.
-- Set `GEMINI_API_KEY` in the Vercel project environment. Do not paste keys into chat or store them in the browser.
-- Structured responses are checked against fixed schemas, approved scenario IDs, and exact approved education notes. Advice, personal inferences, unsupported current facts, sensitive details, and prompt-injection phrases are rejected.
-- Generated code is never executed, and untrusted text is treated only as data.
-- If the key is missing, the request fails, or the model output is unsafe or invalid, the UI says so and uses a clearly labelled static educational path. Live Gemini success is only claimed after it has actually been verified in the target environment.
-
-## Privacy and safety
-
-- No name, email, phone number, PAN, Aadhaar, bank or card details, OTP, password, credential, exact holding, income, age, account status, financial readiness, or risk tolerance is requested or inferred.
-- Obvious sensitive text is blocked before an API request. If it is pasted, it is cleared and not used, and the page explains that handling.
-- Instructions inside pasted advice, links, or documents that conflict with these rules are ignored or removed from echoed text.
-- If personalised advice is requested, Growerr states the boundary, names neutral factors to discuss, and suggests a SEBI-registered Investment Adviser.
-- The optional link opens `https://groww.in/` in a new tab with `target="_blank"` and `rel="noopener noreferrer"`. There is no partnership claim, commission claim, automatic account opening, or answer transfer.
-
-## Routes and files
-
-- `/` — plain-language landing page
-- `/start` — the adaptive journey
-- `/coach` — separate optional educational Q&A guide
-- `/about` — privacy, AI handling, independence, and journey deletion
-- `/api/journey` — structured discovery and evaluation API with static fallback
-- `lib/journey/` — types, discovery, profile, scenarios, evaluation, engine, storage, AI validation, and summary
-- `app/globals.css` — hand-written responsive CSS
-
-## Local commands
-
-```
-npm ci --no-audit --no-fund
-npm test
+```bash
+npm install
+npm run dev     # http://localhost:3000
+npm test        # engine, safety, validation and persistence suite
 npm run lint
 npm run build
 ```
 
-On Windows, a local production server can be started with:
-
-```
-node node_modules/next/dist/bin/next start -p 3100
-```
-
-Checks actually run are recorded in `EVIDENCE.md`.
+Stack: Next.js 15 (App Router), React 19, Tailwind CSS, lucide-react and a self-hosted Inter font. Deployed on Vercel.

@@ -1,67 +1,33 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import localFont from 'next/font/local';
 import './globals.css';
 
+const inter = localFont({
+  src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
+  variable: '--font-inter',
+  weight: '100 900',
+  display: 'swap'
+});
+
 export const metadata: Metadata = {
-  title: 'Growerr — a calmer way to learn investing',
-  description: 'Tell Growerr what you want to understand, then explore short hypothetical scenarios that adapt as you learn. Independent, browser-only and free.'
+  title: 'Growerr — understand investing before you begin',
+  description:
+    'An AI-powered onboarding companion for first-time investors in India. Talk about what confuses you, learn through interactive simulations that adapt to you, and walk into a brokerage app with confidence.'
+};
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-IN" className={inter.variable}>
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
-        <header className="site-header">
-          <div className="header-inner">
-            <Link href="/" className="brand" aria-label="Growerr home">
-              <span className="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                  <path d="M12 21v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M12 14c0-4 3.2-7 8-7 0 5-3.2 8-8 8Z" fill="currentColor" />
-                  <path d="M12 17c0-3.2-2.6-5.6-6.2-5.6 0 3.8 2.6 5.6 6.2 5.6Z" fill="currentColor" opacity=".7" />
-                </svg>
-              </span>
-              Growerr
-            </Link>
-            <nav className="nav" aria-label="Main navigation">
-              <Link href="/#how" className="nav-secondary">How it works</Link>
-              <Link href="/coach">Guide</Link>
-              <Link href="/about">Privacy</Link>
-              <Link href="/start" className="button primary button-small">Get started</Link>
-            </nav>
-          </div>
-        </header>
-        <main id="main">{children}</main>
-        <footer className="site-footer">
-          <div className="footer-inner">
-            <div className="footer-brand">
-              <Link href="/" className="brand" aria-label="Growerr home">
-                <span className="brand-mark" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                    <path d="M12 21v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M12 14c0-4 3.2-7 8-7 0 5-3.2 8-8 8Z" fill="currentColor" />
-                    <path d="M12 17c0-3.2-2.6-5.6-6.2-5.6 0 3.8 2.6 5.6 6.2 5.6Z" fill="currentColor" opacity=".7" />
-                  </svg>
-                </span>
-                Growerr
-              </Link>
-              <p>A calmer way to learn investing basics.</p>
-            </div>
-            <nav className="footer-links" aria-label="Footer navigation">
-              <Link href="/#how">How it works</Link>
-              <Link href="/coach">Educational guide</Link>
-              <Link href="/about">Privacy &amp; independence</Link>
-              <Link href="/start">Get started</Link>
-            </nav>
-            <p className="footer-disclaimer">
-              Growerr is an independent educational tool. It is not affiliated with Groww and does not provide investment advice.
-              Groww is a separate platform with its own terms and privacy policy.
-            </p>
-            <p className="footer-meta">© 2026 Growerr · Your learning journey stays in your browser.</p>
-          </div>
-        </footer>
+        {children}
       </body>
     </html>
   );
