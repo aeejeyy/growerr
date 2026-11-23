@@ -74,6 +74,7 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
       });
     } catch (error) {
       const timeout = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+      tried[tried.length - 1] = `${model}=${timeout ? 'timeout' : 'network'}`;
       lastError = new AiError(timeout ? 'timeout' : 'api_error', `${model} ${timeout ? 'timed out' : 'network error'}`);
       if (workingModel === model) workingModel = null;
       continue;
@@ -81,7 +82,10 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
 
     if ([400, 404, 429, 500, 503].includes(response.status)) {
       // Unknown, unsupported, rate-limited or overloaded model — try the next candidate.
-      lastError = new AiError('api_error', `model ${model} unavailable (${response.status})`);
+      const body = (await response.json().catch(() => null)) as { error?: { message?: string; status?: string } } | null;
+      const reason = `${body?.error?.status ?? ''} ${(body?.error?.message ?? '').slice(0, 90)}`.trim();
+      tried[tried.length - 1] = `${model}=${response.status}${reason ? ` (${reason})` : ''}`;
+      lastError = new AiError('api_error', `${model} unavailable (${response.status})`);
       if (workingModel === model) workingModel = null;
       continue;
     }
@@ -101,5 +105,5 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
       throw new AiError('invalid_response', 'not json');
     }
   }
-  throw new AiError(lastError.code, `${lastError.message} [tried: ${tried.join(', ')}]`);
+  throw new AiError(lastError.code, `tried: ${tried.join('; ')}`);
 }
