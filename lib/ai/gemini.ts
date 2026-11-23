@@ -7,7 +7,7 @@
  */
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.0-flash'];
 
 let workingModel: string | null = null;
 
@@ -41,7 +41,12 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
   if (!key) throw new AiError('missing_key');
 
   let lastError: AiError = new AiError('api_error');
+  const deadline = Date.now() + (options.timeoutMs ?? 24000);
+  const tried: string[] = [];
   for (const model of candidateModels()) {
+    const remaining = deadline - Date.now();
+    if (remaining < 2500) break;
+    tried.push(model);
     let response: Response;
     try {
       response = await fetch(`${BASE}/${encodeURIComponent(model)}:generateContent`, {
@@ -64,21 +69,23 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
             { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
           ]
         }),
-        signal: AbortSignal.timeout(options.timeoutMs ?? 20000),
+        signal: AbortSignal.timeout(Math.min(remaining, 12000)),
         cache: 'no-store'
       });
     } catch (error) {
       const timeout = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
-      throw new AiError(timeout ? 'timeout' : 'api_error');
+      lastError = new AiError(timeout ? 'timeout' : 'api_error', `${model} ${timeout ? 'timed out' : 'network error'}`);
+      if (workingModel === model) workingModel = null;
+      continue;
     }
 
-    if (response.status === 404 || response.status === 400) {
-      // Unknown / unsupported model — try the next candidate.
+    if ([400, 404, 429, 500, 503].includes(response.status)) {
+      // Unknown, unsupported, rate-limited or overloaded model — try the next candidate.
       lastError = new AiError('api_error', `model ${model} unavailable (${response.status})`);
       if (workingModel === model) workingModel = null;
       continue;
     }
-    if (!response.ok) throw new AiError('api_error', `status ${response.status}`);
+    if (!response.ok) throw new AiError('api_error', `${model} status ${response.status}`);
 
     const payload = (await response.json().catch(() => null)) as {
       candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] }; finishReason?: string }[];
@@ -94,5 +101,5 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
       throw new AiError('invalid_response', 'not json');
     }
   }
-  throw lastError;
+  throw new AiError(lastError.code, `${lastError.message} [tried: ${tried.join(', ')}]`);
 }
