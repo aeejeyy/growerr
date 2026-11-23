@@ -61,4 +61,13 @@ A separate headless Chrome run loaded the local production build at 375, 768 and
 
 ## Deployment
 
-Pending for this revision at the time of the local checks above. This section will be updated only after the new commit is deployed and verified.
+- Commit `db76af5` (“Replace fixed questions with adaptive browser-only journey”) was pushed to `main` on `aeejeyy/growerr`.
+- Vercel listed the pushed commit's Production deployment as **Ready**. `vercel inspect https://growerr.vercel.app --json` resolved the alias to that Ready deployment.
+- Production was checked in a fresh headless Chrome profile with no cookies or journey storage, so the session was logged out/private. No Vercel authentication or protection page appeared.
+- `GET /`, `/start` and `/about` returned `200`; `GET /api/journey` returned `405`, as expected for a POST-only route.
+- Production API POST checks all returned `Cache-Control: no-store`: normal discovery returned `mode: "static"`, `reason: "missing_key"`; advice returned `mode: "static"`, `reason: "advice_boundary"`; a PAN-like value returned `mode: "static"`, `reason: "sensitive"`; an empty message returned `400` with “A message is required.”
+- The landing page showed the “Start my journey” link to `/start`. The opening discovery question appeared, the static fallback was labelled, the advice and private-details notices appeared, and “Prefer not to say” was accepted. The stated objective was preserved after those optional replies.
+- A complete production journey ran through `EXP-02`, `EXP-04` and `EXP-06` (nine step checks). All three attempts ended as `demonstrated`, and the summary showed the required sections, 3 of 3 explored, and 3 demonstrated.
+- The production Groww link was `https://groww.in/` with `target="_blank"` and `rel="noopener noreferrer"`.
+- Production `/start` had `scrollWidth === innerWidth` at both 375 and 768 px. No runtime exceptions or console errors were reported during the production run.
+- No live Gemini success is claimed: production returned `missing_key`, so only the labelled static path was exercised.
