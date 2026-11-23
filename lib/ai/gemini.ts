@@ -71,7 +71,7 @@ async function candidateModels(): Promise<string[]> {
 /** Keep latency low: these are short classification / grading tasks. */
 function thinkingFor(model: string): Record<string, unknown> | undefined {
   if (/2\.5-flash/.test(model)) return { thinkingBudget: 0 };
-  if (versionOf(model) >= 3) return { thinkingLevel: 'minimal' };
+  if (versionOf(model) >= 3) return { thinkingLevel: 'low' };
   return undefined;
 }
 
