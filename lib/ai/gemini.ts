@@ -234,7 +234,7 @@ export async function generateJson(options: GenerateOptions): Promise<{ data: un
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new AiError('missing_key');
 
-  const deadline = Date.now() + (options.timeoutMs ?? 24000);
+  const deadline = Date.now() + (options.timeoutMs ?? 20000);
   const queue = await candidateModels();
   const tried: string[] = [];
   let lastCode: AiError['code'] = 'api_error';
